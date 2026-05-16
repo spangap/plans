@@ -358,13 +358,18 @@ report a half-result as if it were terminal.
 | `33db4a9` | step 3: rnsd resource aux handoff + lxmf port 101 |
 | `75d92e7` | step 4 wip: harden all Link RESOURCE_* with try/catch + failure breadcrumb |
 
-**§9.5 hardware acceptance: PASSED for all inbound criteria
-(2026-05-16).** The earlier stall *was* root-caused (device serial
-*is* available via `build/flasher.log` — it is the device's serial
-log, just UTC; the prior writeup wrongly judged it stale) and fixed.
-Three real bugs surfaced and were fixed, then all five §9.5 inbound
-criteria passed against a real upstream Python LXMF DIRECT peer
-(`scripts/lxmf-send` / `scripts/lxmf-echo`).
+**§9.5 hardware acceptance (2026-05-16): 4/5 criteria PASS;
+10×64 KB soak leak-verdict INCONCLUSIVE** (16 KB ✅, 128 KB
+multiseg ✅, drop→FAILED+no-leak ✅, oversize-reject ✅; 10×64 KB
+data-path ✅ but leak inconclusive — see the bullet below: a
+flasher-daemon `USB_UART_CHIP_RESET` interrupted iter 6 and reset the
+HWM, invalidating the PS0→PS1 comparison). The earlier stall *was*
+root-caused (device serial *is* available via `build/flasher.log` —
+the device's serial log, just UTC; the prior writeup wrongly judged
+it stale) and fixed. Real bugs surfaced and were fixed; the four
+clean criteria + the 9 uninterrupted soak transfers all held against
+a real upstream Python LXMF DIRECT peer (`scripts/lxmf-send` /
+`scripts/lxmf-echo`).
 
 Bugs found + fixed (commits on `phase-f-resource`):
 
@@ -393,21 +398,45 @@ Results (device `e9904da9…lxmf.delivery`, LoRa disabled — see note):
 - **oversize > `s.lxmf.max_resource_size`** — PASS. 300154 B >
   262144 → `resource 300154B > max 262144B, rejecting` at the
   advertisement; no allocation; `lxmf msgs in` unchanged.
-- **10× 64 KB sequential** — PASS. 10/10 `DELIVERED`, `lxmf msgs in`
-  +10, PSRAM HWM **flat at 6221524 every run** (free fluctuates
-  ~7.0–7.2 MB transient, recovers). No cumulative leak. No reboot.
+- **10× 64 KB sequential** — data path PASS; **leak verdict
+  INCONCLUSIVE** (corrected 2026-05-16, supersedes the earlier
+  "10/10 flat, no reboot" claim). Canonical `scripts/phasef-95` run
+  (15:36–15:54): **9/10 `DELIVERED`**; iteration 6 was interrupted by
+  an **external `USB_UART_CHIP_RESET`** (ROM `rst:0x15` — the
+  flasher-daemon's serial monitor cycling re-asserts the USB reset
+  line; *not* a firmware panic/wdt/brownout — persist-capture logged
+  **0** `SW_CPU_RESET`/`TG*WDT`/`Guru`/`brownout` across the entire
+  2620-line session). The device rebooted once (~15:48), then ran
+  iters 7–10 + the drop case clean and stayed up. **Why inconclusive:**
+  the mid-run reboot reset the PSRAM min-free HWM, so the runner's
+  `PS0→PS1` "flat" check (and the auto-printed "no-leak") is invalid —
+  PS0 was a pre-reboot baseline, PS1 a post-reboot one. Within each
+  contiguous boot the min-HWM declined modestly (~30–50 KB/iter, no
+  plateau observed in the available iters, no crash, ~6.8 MB/8.4 MB
+  free). The 9 uninterrupted transfers all delivered correctly — the
+  data path is sound; **a single clean ≥10-iter soak with no
+  flasher-daemon monitor reset is still owed** to settle leak/no-leak.
 
-**Device-outbound Resource: implemented, NOT HW-verified.** The
-lxmf→rnsd→engine outbound path (`processReady` >`LXMF_OPP_CONTENT_BUDGET`
-→ `rnsdLinkSendResource` → `RNSD_LINK_AUX_SEND_RESOURCE` →
-`_init_outbound`/`advertise` (windowed) → `RESOURCE_REQ`→`request()`
-→ parts → `validate_proof`→`OUTBOUND_DONE`) builds clean and the
-selector branch is the same one Phase E verified for forced-direct.
-But the device CLI input line is capped (~80 B effective payload), so
-a *device-originated* message exceeding the budget cannot be produced
-via `diptych-cli "lxmf send"` — the **same documented Phase E harness
-limitation** (not a Phase F defect). Verifying it needs a non-CLI
-trigger (browser DC / test hook) unavailable here.
+**Device-outbound Resource: HW-VERIFIED (2026-05-16 16:04, HEAD
+`9ac0ea7`).** `diptych-cli "lxmf send <echo> @rand50000"` (the
+`3da6928` test affordance — device CLI line buffer is 128 B, so a
+>74-part body can't be typed; `@randN` substitutes an N-byte
+incompressible body) → 50111 B wire → `SEND_RESOURCE deferred (link
+establishing)` → link `ACTIVE` → `sending 50111B resource` →
+`_init_outbound`/windowed `advertise` (109 parts, first 74 hashes
+advertised) → upstream Python echo `Accepting resource advertisement
+… 50.18 KB in 109 parts` → echo pulled the first 74, sent
+`RESOURCE_REQ(EXHAUSTED)` → device **`Resource::request HMU seg=1
+parts[74..109) of 109`** (the `0a53731` `wants_more_hashmap` branch) →
+echo got the rest → `outbound resource delivered (proof ok)` →
+`[lxmf] DIRECT resource proven` → msg `stage=sent` → echo logged
+`LXM from e9904da9… method=Curve25519` carrying the exact 50000-byte
+body. ~3.3 s round trip. The enabling rnsd fix is `9ac0ea7` (defer
+the outbound Resource until the link is ACTIVE — pre-fix it was
+**dropped** with `SEND_RESOURCE but link not active`, so the engine
+was never reached and the msg failed `remote_closed`). The echo's
+`--echo` reply then round-tripped **inbound** (83 parts, HMU
+`74/83→83/83`), re-confirming inbound multi-segment in the same boot.
 
 Environment / caveats (not Phase F defects):
 
