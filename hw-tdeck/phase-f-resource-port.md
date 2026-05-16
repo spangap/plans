@@ -236,3 +236,74 @@ Phase F is **done** when, on `phase-f-resource`:
 If §9.5 reveals the port is functionally incomplete, that is normal
 for a port this size — keep going (fix and re-verify), do not stop to
 report a half-result as if it were terminal.
+
+---
+
+## Results — 2026-05-16 (honest record per Definition-of-done §2)
+
+**Steps 1–3 + step-4 hardening: DONE, committed, build EXIT=0 / 0 warnings.**
+
+| commit | what |
+|---|---|
+| `7538fdd` | step 1: Resource transfer engine ported (Link.cpp untouched) |
+| `1af435b` | step 1 fix: upstream Reticulum proof/hash wire (not ratspeak's) |
+| `c77006b` | step 2: Link.cpp RESOURCE_* contexts wired + 28 fork warnings zeroed |
+| `33db4a9` | step 3: rnsd resource aux handoff + lxmf port 101 |
+| `75d92e7` | step 4 wip: harden all Link RESOURCE_* with try/catch + failure breadcrumb |
+
+**§9.5 hardware acceptance: ATTEMPTED — does NOT yet pass. Precise failure:**
+
+Rig: dev-loop `rnsd` + `scripts/lxmf-echo --echo` (real upstream Python
+LXMF/RNS, DIRECT). Device flashed with `75d92e7` (verified via
+`sys.buildtime.fixed`, reboot observed).
+
+- Device → echo small trigger: **works** (`lxmf msgs … out sent`).
+- Echo → device reply (DIRECT): upstream LXMF sends it **as a Resource**
+  (observed `resource.parts=2`, `resource.size=16536` even for a tiny
+  body — upstream pads/uses Resource for DIRECT).
+- Device side (`diptych-cli "show rnsd.links"`): the inbound Phase-D
+  Link establishes, `state=active`, `last_error` empty; the Resource is
+  **received and accepted** — `rnsd.links.in.<tag>.resource.state =
+  receiving`, `.size=16536`, `.parts=2`. So Link.cpp RESOURCE_ADV
+  wiring + `onResAdvertised` gate + engine `accept()` all run.
+- **The transfer then never progresses.** `resource.state` stays
+  `receiving` indefinitely (observed ≥160 s); it never reaches
+  `received`/`failed:in:N`; `_received` never reaches `_total_parts`.
+  rnsd stays alive (mailbox/links persist; device clock advances — no
+  panic). The hardening (`75d92e7`) confirms it is **not** an
+  uncaught-exception crash.
+- Echo side (`ECHO_RNS_LOGLEVEL=7`): establishes the Link, logs
+  `Starting transfer … on link <X>` + `Set compression support from
+  app data to: True`, then ~4 s later `The link to <device> was closed
+  unexpectedly, retrying path request…`; retries up to LXMF max
+  attempts, then `failed to send`. The echo never logs sending
+  Resource *parts* — i.e. it never received a valid part request from
+  the device.
+
+**Diagnosis (best, without device serial logs):** the inbound Resource
+RECEIVER path stalls at/after the engine's initial `RESOURCE_REQ`.
+Either the device's `Resource::accept()` initial `RESOURCE_REQ` is not
+reaching the upstream sender, or upstream rejects it, so the echo never
+streams parts; the device sits forever in `receiving`. The most likely
+locus is sending a `RESOURCE_REQ` packet *from the non-initiator end of
+a Phase-D inbound Link* (a path Phase E never exercised — Phase E only
+*received* a single packet on inbound links), and/or a `RESOURCE_REQ`
+wire-detail mismatch vs upstream `RNS/Resource.py`.
+
+**Blocker to going further here:** pinpointing this needs the device's
+mR `WARNING/ERROR/DEBUG` from `accept()` / `receive_part` / the REQ
+send. Device serial output is **not available in this environment**
+(not tee'd; the flasher `idf.py monitor` runs on the USB host, not the
+VM — see "Build / flash / test environment"). Storage breadcrumbs show
+*where* it stalls (accepted → never progresses) but not *why* the REQ
+fails. This is the §5.2 / §12.5 "first-contact µR drift" class the
+plan anticipated.
+
+**State: Phase F engine is ported and the whole build is clean (0
+warnings); the inbound Resource path is wired end-to-end but does not
+yet interoperate with a real upstream LXMF DIRECT peer. NOT done.**
+Next session (with device-log access): instrument/trace
+`Resource::accept` REQ emission + the non-initiator inbound-Link send
+path; verify the `RESOURCE_REQ` wire byte-for-byte against upstream
+`RNS/Resource.py` `Resource.request()`/`Link` RESOURCE_REQ; then the
+128 KB / drop→FAILED / oversize-reject / 10×64 KB-soak criteria.
