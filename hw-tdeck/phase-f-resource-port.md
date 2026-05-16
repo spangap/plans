@@ -12,6 +12,31 @@ research/ratspeak-mr/{Resource.cpp,Resource.h,ResourceData.h}
 Do **not** copy ratspeak/ratdeck (AGPL). `ratspeak/microReticulum` is
 Apache-2.0 — algorithm reference only; adapt to our fork's APIs.
 
+## Operating directive (READ FIRST)
+
+This is a long mechanical port, not a research task. **There is no
+remaining architectural decision** — approach A is locked, the
+reference is chosen, the API deltas and wiring points are mapped
+below. "Large" and "not incrementally hardware-verifiable until
+substantially complete" (§9.0) are **not** stop conditions.
+
+- **Do not stop** until all four build/verify steps are done and the
+  §9.5 acceptance has been attempted on hardware, OR you hit a genuine
+  *unfixable* blocker (a real one — a missing primitive that cannot be
+  ported, hardware unavailable, etc.), OR a *new* architectural fork
+  that did not exist at spec time. Running low on context is itself a
+  reason to keep moving and commit progress, not to pause for
+  acknowledgement.
+- **Decide small things autonomously.** Naming, helper placement,
+  log-level choices, struct layout — just choose and proceed. Do not
+  ask "should I continue / proceed / commit per step" — the answer is
+  always yes; this document is the standing authorization.
+- **Report faithfully, never overclaim.** A step is "done" only when
+  it builds with **0 warnings** (`feedback_fix_warnings`); the port is
+  "verified" only after the §9.5 hardware soak passes. Mark WIP as WIP.
+- Commit each numbered step as its own commit on this branch as you
+  finish it — never batch-at-the-end, never wait to be told.
+
 ## Decision (locked): approach A
 
 Keep the attermann-shaped `Resource` / `ResourceAdvertisement` /
@@ -130,3 +155,84 @@ Bytes                _assembled;        // cached for proof/data()
    leak; 10× 64KB → flat PSRAM HWM (link.md §9.5).
 
 Each numbered step is one reviewable commit on this branch.
+
+## Branch / fork discipline
+
+- All Phase F work happens on reticulous branch **`phase-f-resource`**
+  (already created; `git switch phase-f-resource`). Tested A–E is on
+  `main` beneath it (`e2bb0ae`).
+- **Never commit to `main`.** One commit per numbered step (§"Build/
+  verify"), on this branch. Do not push (user controls remotes).
+- **diptych stays on `main`** — Phase F is reticulous-only
+  (`components/microreticulum/` + `main/lxmf.cpp` + `main/rnsd.cpp`).
+  No diptych-core changes are expected; if one becomes necessary that
+  is a *new* fork — surface it.
+- Don't `git add` `web-interface/package-lock.json` (deliberately
+  untracked since `7f87eaf`). `research/` is gitignored by design.
+
+## Build / flash / test environment
+
+The bare `idf.py` wrapper has a silent-exit-1 bug (sourced-probe;
+see diptych `docs/development.md`). Reconstruct the working wrapper
+(machine-local, not in git):
+
+```sh
+# /tmp/idfenv.sh — eval activate -e env, prepend good node, exec real idf.py
+ACT="$HOME/.espressif/tools/activate_idf_v5.5.4.sh"
+E="$(sh "$ACT" -e 2>/dev/null)"
+export IDF_PATH=$(printf '%s\n' "$E"|sed -n 's/^IDF_PATH=//p')
+export IDF_PYTHON_ENV_PATH=$(printf '%s\n' "$E"|sed -n 's/^IDF_PYTHON_ENV_PATH=//p')
+export IDF_TOOLS_PATH=$(printf '%s\n' "$E"|sed -n 's/^IDF_TOOLS_PATH=//p')
+export ESP_ROM_ELF_DIR=$(printf '%s\n' "$E"|sed -n 's/^ESP_ROM_ELF_DIR=//p')
+export PATH="$HOME/.nvm/versions/node/v22.22.2/bin:$(printf '%s\n' "$E"|sed -n 's/^PATH=//p'):$(printf '%s\n' "$E"|sed -n 's/^SYSTEM_PATH=//p')"
+exec "$IDF_PYTHON_ENV_PATH/bin/python" "$IDF_PATH/tools/idf.py" "$@"
+```
+
+- **Build:** `cd reticulous && umask 000 && /tmp/idfenv.sh --diptych
+  build` (the `--diptych` flag pulls the sibling diptych-core checkout,
+  required — the storage fix lives there). Confirm `EXIT=0` and
+  `grep -ciE 'warning:' == 0`.
+- **Flash:** host runs a flasher daemon. From the VM:
+  `flasher host /Volumes/code/diptych/reticulous` touches
+  `build/flashme`; daemon flashes + reboots. Wait until `build/flashme`
+  is consumed, then poll `diptych-cli date` for a `2026-*` reply.
+- **Device output is NOT tee'd here** (`build/flasher.log` is stale).
+  Interrogate live via `diptych-cli "<cmd>"` (default host
+  `reticulous.local` = 192.168.2.22, CLI port persists across flash),
+  the dev-loop `.rns/rnsd.log`, and storage observability
+  (`diptych-cli "show rnsd.links"`, `"show rnsd.mailbox"`,
+  `"rnsd links"`, `"lxmf msgs"`).
+- **Test rig (host, this machine = 192.168.2.21):**
+  `scripts/rns up &` (dev-loop rnsd, :4242 + shared :37428);
+  `scripts/lxmf-echo --echo &` (LXMF/Link peer — **DIRECT by
+  default**, prints `READY <hash>`; `--opp` forces opportunistic).
+  For Resource specifically the echo must reply with a payload >
+  ~440 B so it goes out as a Resource (extend lxmf-echo if needed —
+  e.g. `--pad N` to fatten the echo body; that is a small autonomous
+  change, just do it).
+- `scripts/announce-sniff [aspect]` discovers a device-hosted dest
+  hash via the shared instance.
+
+## Definition of done
+
+Phase F is **done** when, on `phase-f-resource`:
+
+1. Steps 1–3 each built green (0 warnings) and committed.
+2. §9.5 hardware acceptance attempted and results recorded honestly in
+   this file + `link.md` (status box) + memory
+   (`project_link_resource_unported` → flip to done, or record the
+   precise failure):
+   - `lxmf send <echo> <~16 KB>` → echo Resource reply lands, signature
+     verifies, persists in `lxmf msgs`.
+   - `<~128 KB>` round-trips.
+   - peer advertises then drops → FAILED aux, buffer freed, no leak.
+   - peer advertises > `s.lxmf.max_resource_size` → rejected at
+     advertisement, no allocation.
+   - 10× 64 KB sequential inbound → flat PSRAM HWM (`top`/heap).
+3. Then update `link.md` §11 table (F ✅), `MEMORY.md` pointer, and
+   stop — Phase G (its own §10 ⚠️ blocker) is a *separate* decision,
+   not part of this branch's mandate.
+
+If §9.5 reveals the port is functionally incomplete, that is normal
+for a port this size — keep going (fix and re-verify), do not stop to
+report a half-result as if it were terminal.
