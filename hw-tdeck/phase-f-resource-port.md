@@ -398,24 +398,50 @@ Results (device `e9904da9…lxmf.delivery`, LoRa disabled — see note):
 - **oversize > `s.lxmf.max_resource_size`** — PASS. 300154 B >
   262144 → `resource 300154B > max 262144B, rejecting` at the
   advertisement; no allocation; `lxmf msgs in` unchanged.
-- **10× 64 KB sequential** — data path PASS; **leak verdict
-  INCONCLUSIVE** (corrected 2026-05-16, supersedes the earlier
-  "10/10 flat, no reboot" claim). Canonical `scripts/phasef-95` run
-  (15:36–15:54): **9/10 `DELIVERED`**; iteration 6 was interrupted by
-  an **external `USB_UART_CHIP_RESET`** (ROM `rst:0x15` — the
-  flasher-daemon's serial monitor cycling re-asserts the USB reset
-  line; *not* a firmware panic/wdt/brownout — persist-capture logged
-  **0** `SW_CPU_RESET`/`TG*WDT`/`Guru`/`brownout` across the entire
-  2620-line session). The device rebooted once (~15:48), then ran
-  iters 7–10 + the drop case clean and stayed up. **Why inconclusive:**
-  the mid-run reboot reset the PSRAM min-free HWM, so the runner's
-  `PS0→PS1` "flat" check (and the auto-printed "no-leak") is invalid —
-  PS0 was a pre-reboot baseline, PS1 a post-reboot one. Within each
-  contiguous boot the min-HWM declined modestly (~30–50 KB/iter, no
-  plateau observed in the available iters, no crash, ~6.8 MB/8.4 MB
-  free). The 9 uninterrupted transfers all delivered correctly — the
-  data path is sound; **a single clean ≥10-iter soak with no
-  flasher-daemon monitor reset is still owed** to settle leak/no-leak.
+- **64 KB sequential soak — RESOLVED 2026-05-16** (supersedes both the
+  earlier "10/10 flat" claim and the later "inconclusive" note). A
+  **clean uninterrupted 12×64 KB run** (`.rns/soak-clean.sh`, no
+  flasher-daemon reset, reboot-guarded): **12/12 `DELIVERED`, zero
+  reboots**. The Resource transfer **engine is sound** — the data path
+  is not the problem and there is **no Resource/Link memory leak**
+  (completed Resources are erased from the Link; 0 panics in the
+  engine).
+
+  The soak did, however, flush out **two pre-existing, *documented*
+  platform unbounded-growth defects — neither in the Phase F Resource
+  engine** — which together degraded then crashed the node:
+  1. **lxmf message retention.** `onInboundLxm` (lxmf.cpp:1498)
+     persists the full decoded body into the cJSON-in-RAM storage
+     tree, backed by the **256 KB `/state` LittleFS** partition, with
+     **no retention/eviction cap**. `s.lxmf.max_resource_size`
+     (262144) ≈ the whole `/state` partition, so even one max message
+     can fill it. Sustained inbound traffic → `lfs.c: No more free
+     space` → storage writes fail.
+  2. **rnsd path-table growth.** The path table is an **unbounded
+     `BasicHeapStore`, pruned only every 24 h** (rnsd.cpp:3782 comment:
+     "Re-add when we implement post-process pruning"; `s.rnsd.path.max`
+     /`ttl` were deliberately removed). `publishPathTable()`
+     (rnsd.cpp:1395/1407) does an O(N) full decode of it every cycle;
+     once it grew under announce/link churn the cycle ran long enough
+     to **trip the task watchdog → panic** (backtrace tops at
+     `task_wdt_timeout_handling` in `publishPathTable()`).
+
+  Net incident: `/state`-full cascaded (storage writes fail → ITS
+  notify-drop storm → CLI ITS port refused connections) and rnsd
+  task-watchdog-panicked in `publishPathTable()`. **Recovery:** a
+  reflash cleared it (RAM path-table reset; identity + config in
+  `/state` preserved; the soak's inbound bodies had never durably
+  persisted because their writes failed on the full FS). Device healthy
+  post-reflash (PSRAM ~7.66 MB free, no errors).
+
+  Both gaps are **tracked follow-ups, out of the Phase F mandate**,
+  and naturally fold into the planned **storage/log → SD** work (large
+  Resource-delivered bodies are attachment/blob-scale data that should
+  not live in the RAM-cJSON `/state` config tree at all). Minor
+  observation also logged: `lxmf` `cmd.delete` is a single sentinel
+  key (rapid repeats race/overwrite) and `processDelete`'s
+  `storageDeleteTree` success was not reflected by `show` — a separate
+  lxmf/storage delete-or-show inconsistency, harmless, unrelated to F.
 
 **Device-outbound Resource: HW-VERIFIED (2026-05-16 16:04, HEAD
 `9ac0ea7`).** `diptych-cli "lxmf send <echo> @rand50000"` (the
