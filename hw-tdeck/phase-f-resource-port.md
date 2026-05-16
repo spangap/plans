@@ -12,6 +12,113 @@ research/ratspeak-mr/{Resource.cpp,Resource.h,ResourceData.h}
 Do **not** copy ratspeak/ratdeck (AGPL). `ratspeak/microReticulum` is
 Apache-2.0 — algorithm reference only; adapt to our fork's APIs.
 
+## Current status (2026-05-16) — READ THIS FIRST IF CONTINUING
+
+Branch `phase-f-resource` (Phases A–E are on `main` beneath at
+`e2bb0ae`). Build is **0-warning** throughout
+(`cd reticulous && umask 000 && /tmp/idfenv.sh --diptych build`).
+Steps 1–3 + the Step-4 HW fixes are committed, one commit per concern:
+
+- `7538fdd` engine ported · `1af435b` proof/hash wire corrected to
+  **upstream Reticulum** (ratspeak's reference diverges — two random
+  hashes, plaintext-domain resource_hash/proof; this was essential for
+  real-peer interop).
+- `c77006b` Link.cpp `RESOURCE_*` dispatch + 28 pre-existing fork
+  warnings zeroed.
+- `33db4a9` rnsd shared-memory aux handoff + lxmf port-101
+  (`rnsd_link_resource_done_t`, `rnsdLinkSendResource`/`Release`).
+- `5b96102` **MTU clamp + windowed pull → 16 KB inbound VERIFIED**.
+- `408c574` **multi-segment hashmap (RESOURCE_HMU) → 128 KB inbound
+  VERIFIED**.
+- (`75d92e7`,`2cdd27e` are Step-4 WIP/record commits superseded by the
+  two above.)
+
+### Verified on hardware (§9.5)
+
+- ✅ **16 KB inbound** Resource round-trip and ✅ **128 KB inbound**
+  (multi-segment: 283 parts, HMU seg 1/2/3). Full path each time:
+  Link → `Resource::accept` → windowed `request_next` (+`RESOURCE_HMU`
+  for >~74 parts) → all parts → assemble → `link.decrypt` → strip
+  stream-rh → integrity OK → `RESOURCE_PRF` proof → rnsd aux→lxmf:101
+  → `onInboundLxm` → persisted (`lxmf msgs` in-count +1); the Python
+  sender reports `DELIVERED`. PSRAM returns to baseline, no leak/wdt
+  observed (LoRa off).
+
+### Bugs found+fixed during the §9.5 HW run (all committed)
+
+1. ratspeak vs upstream proof/hash domain → `1af435b`.
+2. mR Link MTU discovery negotiated 8192, but **every fork transport
+   carries only the RNS base MTU** (tcp logs `[tcp] hdlc: frame > 500
+   B, dropped`): `LINK_MTU_DISCOVERY=false` (Type.h) + clamp the
+   negotiated MTU to `Reticulum::MTU` in `Link::validate_request`
+   (responder) and `validate_proof` (initiator). → `5b96102`.
+3. windowed pull absent → `request_next` + receive_part trigger →
+   `5b96102`.
+4. multi-segment hashmap stubbed → ported `request_next`(exhausted
+   flag) / `hashmap_update_packet` + Link.cpp `RESOURCE_HMU` wiring
+   (`ResourceData` gained `_hash_known/_consec/_hashmap_height/
+   _waiting_hmu`, `_map_hashes` sized to `_total_parts`) → `408c574`.
+
+### Remaining work (ordered — for the new context)
+
+1. **Run the 3 remaining §9.5 cases** (engine is believed correct;
+   these are acceptance, not new code). A drafted autonomous runner
+   exists at **`scripts/phasef-95`** (untracked) — disables LoRa, runs
+   *oversize-reject* (`> s.lxmf.max_resource_size`, default 262144),
+   *10×64 KB PSRAM-flat soak*, *advertise-then-drop → FAILED + buffer
+   freed*; logs `.rns/phasef-95.log`, emits one line per milestone.
+   Run it (background/Monitor) and record results. Expected:
+   oversize → `onResAdvertised` returns false, no alloc, in-count
+   unchanged; soak → `diptych-cli top` PSRAM `min` flat across 10;
+   drop → `link[in.*]: resource inbound failed`, PSRAM recovers.
+2. **Device-as-SENDER large outbound Resource** (>~34 KB, i.e.
+   >`HASHMAP_MAX_LEN`≈74 parts, device→peer). Receiver multi-seg is
+   done; the sender side is the remaining engine gap:
+   - `Resource::advertise()` currently packs the **full** `_hashmap`
+     into the advertisement — for >74 parts that packet won't fit;
+     it must window the hashmap to the first `HASHMAP_MAX_LEN`.
+   - `Resource::request()` / Link.cpp `RESOURCE_REQ` must handle the
+     `HASHMAP_IS_EXHAUSTED` flag from the peer and emit `RESOURCE_HMU`
+     segments (mirror upstream `Resource.request`'s HMU branch).
+   - Small outbound DIRECT (≤~440 B → 1 Link packet, Phase E) and
+     ≤74-part outbound Resource should already work; verify a
+     >74-part device→echo send after the fix
+     (`s.lxmf.id.0.default_method=direct`, or oversize auto→direct).
+3. Then per **Definition of done** below: flip [link.md](link.md) §11
+   table (F ✅) + the §"Current status" box, the `MEMORY.md` pointer,
+   and memory `project_link_resource_unported` → done. **Phase G stays
+   separately blocked** (link.md §10, upstream-incompatible mgmt
+   msgpack) — not part of this branch's mandate.
+
+### Environment / gotchas the new context MUST know
+
+- **Test payloads must be incompressible** (`scripts/lxmf-send` uses
+  raw `os.urandom`). bz2 is disabled on the build (SF_COMPRESSION
+  absent) — compressible payloads are *correctly* dropped
+  (`Resource: dropping compressed inbound payload`); that is not a
+  bug. Real attachments (already-compressed) are incompressible.
+- **LoRa off for all tests** (`diptych-cli "lora down"`). LoRa is
+  pre-Phase-3 scaffold; under Resource packet volume its TX path
+  starves CPU0 → `task_wdt` (CPU 0: lora). Unrelated to Phase F — do
+  **not** chase it.
+- `build/flasher.log` **is the live device serial log** (the apparent
+  ~2 h lag was UTC; device tz is now `Europe/Berlin` and matches the
+  host). The diptych-cli port **persists across flash**, so detect a
+  reflash by the post-flash boot banner in flasher.log
+  (`Returned from app_main` / `cli: end /state/boot`), *not* by
+  diptych-cli becoming unreachable.
+- Rig: device `lxmf.delivery` = `e9904da9695d0394ab52d8e1fe25c0a5`;
+  dev-loop rnsd via `scripts/rns up`; `scripts/lxmf-send <hash>
+  --size N --method direct`; `scripts/lxmf-echo --echo --pad N`.
+  Device heap/PSRAM: `diptych-cli top` (`PSRAM free X/Y min Z` —
+  track `min` for leak). Device CLI input is line-capped (~440 B) so
+  big device-originated sends can't be typed — drive inbound with
+  `lxmf-send`; for outbound use forced `direct` + an oversize body.
+- Files are **co-edited** (linter/another context commits with the
+  same intent) — `git log`/re-read before editing; `git commit` may
+  no-op if your change already landed. Never `git add`
+  `web-interface/package-lock.json`.
+
 ## Operating directive (READ FIRST)
 
 This is a long mechanical port, not a research task. **There is no
