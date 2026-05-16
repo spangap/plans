@@ -358,59 +358,72 @@ report a half-result as if it were terminal.
 | `33db4a9` | step 3: rnsd resource aux handoff + lxmf port 101 |
 | `75d92e7` | step 4 wip: harden all Link RESOURCE_* with try/catch + failure breadcrumb |
 
-**§9.5 hardware acceptance: ATTEMPTED — does NOT yet pass. Precise failure:**
+**§9.5 hardware acceptance: PASSED for all inbound criteria
+(2026-05-16).** The earlier stall *was* root-caused (device serial
+*is* available via `build/flasher.log` — it is the device's serial
+log, just UTC; the prior writeup wrongly judged it stale) and fixed.
+Three real bugs surfaced and were fixed, then all five §9.5 inbound
+criteria passed against a real upstream Python LXMF DIRECT peer
+(`scripts/lxmf-send` / `scripts/lxmf-echo`).
 
-Rig: dev-loop `rnsd` + `scripts/lxmf-echo --echo` (real upstream Python
-LXMF/RNS, DIRECT). Device flashed with `75d92e7` (verified via
-`sys.buildtime.fixed`, reboot observed).
+Bugs found + fixed (commits on `phase-f-resource`):
 
-- Device → echo small trigger: **works** (`lxmf msgs … out sent`).
-- Echo → device reply (DIRECT): upstream LXMF sends it **as a Resource**
-  (observed `resource.parts=2`, `resource.size=16536` even for a tiny
-  body — upstream pads/uses Resource for DIRECT).
-- Device side (`diptych-cli "show rnsd.links"`): the inbound Phase-D
-  Link establishes, `state=active`, `last_error` empty; the Resource is
-  **received and accepted** — `rnsd.links.in.<tag>.resource.state =
-  receiving`, `.size=16536`, `.parts=2`. So Link.cpp RESOURCE_ADV
-  wiring + `onResAdvertised` gate + engine `accept()` all run.
-- **The transfer then never progresses.** `resource.state` stays
-  `receiving` indefinitely (observed ≥160 s); it never reaches
-  `received`/`failed:in:N`; `_received` never reaches `_total_parts`.
-  rnsd stays alive (mailbox/links persist; device clock advances — no
-  panic). The hardening (`75d92e7`) confirms it is **not** an
-  uncaught-exception crash.
-- Echo side (`ECHO_RNS_LOGLEVEL=7`): establishes the Link, logs
-  `Starting transfer … on link <X>` + `Set compression support from
-  app data to: True`, then ~4 s later `The link to <device> was closed
-  unexpectedly, retrying path request…`; retries up to LXMF max
-  attempts, then `failed to send`. The echo never logs sending
-  Resource *parts* — i.e. it never received a valid part request from
-  the device.
+| commit | fix |
+|---|---|
+| `1af435b` | upstream proof/hash wire (two random hashes, plaintext domain) — not ratspeak's |
+| `5b96102` | **Link MTU clamp** — mR negotiated 8192; every fork transport carries only RNS-base 500 (tcp drops HDLC frames >500 B) so the peer chunked Resources too big and the device never saw the parts. `LINK_MTU_DISCOVERY=false` + clamp in `validate_request`/`validate_proof` (link.md §12.1). **Plus windowed request-next** (`accept()` only asked for the first window). |
+| `408c574` | **multi-segment hashmap (RESOURCE_HMU)** — advertisement only carries the first `HASHMAP_MAX_LEN`(~74) hashes; the receiver must pull later segments via `RESOURCE_REQ(exhausted)` → `RESOURCE_HMU`. Required for any message >~34 KB. |
+| `0a53731` | device-as-sender >74-part: `advertise()` windows the hashmap + sender emits `RESOURCE_HMU`. |
 
-**Diagnosis (best, without device serial logs):** the inbound Resource
-RECEIVER path stalls at/after the engine's initial `RESOURCE_REQ`.
-Either the device's `Resource::accept()` initial `RESOURCE_REQ` is not
-reaching the upstream sender, or upstream rejects it, so the echo never
-streams parts; the device sits forever in `receiving`. The most likely
-locus is sending a `RESOURCE_REQ` packet *from the non-initiator end of
-a Phase-D inbound Link* (a path Phase E never exercised — Phase E only
-*received* a single packet on inbound links), and/or a `RESOURCE_REQ`
-wire-detail mismatch vs upstream `RNS/Resource.py`.
+Results (device `e9904da9…lxmf.delivery`, LoRa disabled — see note):
 
-**Blocker to going further here:** pinpointing this needs the device's
-mR `WARNING/ERROR/DEBUG` from `accept()` / `receive_part` / the REQ
-send. Device serial output is **not available in this environment**
-(not tee'd; the flasher `idf.py monitor` runs on the USB host, not the
-VM — see "Build / flash / test environment"). Storage breadcrumbs show
-*where* it stalls (accepted → never progresses) but not *why* the REQ
-fails. This is the §5.2 / §12.5 "first-contact µR drift" class the
-plan anticipated.
+- **16 KB inbound** — PASS. `inbound resource complete 16536B →
+  consumer`; `[lxmf] recv mid=… len=16536B title="phasef"`; sender
+  `DELIVERED`; `lxmf msgs in` +1.
+- **128 KB inbound** — PASS. `n=283 advhashes=74/283` →
+  `request_next exhausted=1` → `hashmap_update seg=1/2/3`
+  (74→148→222→283) → all parts → sender `DELIVERED 131072B`;
+  `lxmf msgs in` +1.
+- **advertise-then-drop → FAILED, no leak** — PASS. Mid-transfer
+  kill; PSRAM HWM (`top` min-free) flat at 6221524 across the drop +
+  soak + ~dozens of debugging-run failures; FAILED-on-timeout
+  (`resource inbound failed (status=7)` → CLOSED → slot reclaimed)
+  observed repeatedly. By design the inbound path only `malloc`s on
+  COMPLETE, so a dropped transfer cannot leak.
+- **oversize > `s.lxmf.max_resource_size`** — PASS. 300154 B >
+  262144 → `resource 300154B > max 262144B, rejecting` at the
+  advertisement; no allocation; `lxmf msgs in` unchanged.
+- **10× 64 KB sequential** — PASS. 10/10 `DELIVERED`, `lxmf msgs in`
+  +10, PSRAM HWM **flat at 6221524 every run** (free fluctuates
+  ~7.0–7.2 MB transient, recovers). No cumulative leak. No reboot.
 
-**State: Phase F engine is ported and the whole build is clean (0
-warnings); the inbound Resource path is wired end-to-end but does not
-yet interoperate with a real upstream LXMF DIRECT peer. NOT done.**
-Next session (with device-log access): instrument/trace
-`Resource::accept` REQ emission + the non-initiator inbound-Link send
-path; verify the `RESOURCE_REQ` wire byte-for-byte against upstream
-`RNS/Resource.py` `Resource.request()`/`Link` RESOURCE_REQ; then the
-128 KB / drop→FAILED / oversize-reject / 10×64 KB-soak criteria.
+**Device-outbound Resource: implemented, NOT HW-verified.** The
+lxmf→rnsd→engine outbound path (`processReady` >`LXMF_OPP_CONTENT_BUDGET`
+→ `rnsdLinkSendResource` → `RNSD_LINK_AUX_SEND_RESOURCE` →
+`_init_outbound`/`advertise` (windowed) → `RESOURCE_REQ`→`request()`
+→ parts → `validate_proof`→`OUTBOUND_DONE`) builds clean and the
+selector branch is the same one Phase E verified for forced-direct.
+But the device CLI input line is capped (~80 B effective payload), so
+a *device-originated* message exceeding the budget cannot be produced
+via `diptych-cli "lxmf send"` — the **same documented Phase E harness
+limitation** (not a Phase F defect). Verifying it needs a non-CLI
+trigger (browser DC / test hook) unavailable here.
+
+Environment / caveats (not Phase F defects):
+
+- **LoRa disabled for the run.** The §9.5 transport is the dev-loop
+  TCP. rnsd fans outbound traffic to every registered interface; the
+  Resource packet burst hit the pre-Phase-3 LoRa scaffold, whose
+  `SX126x::transmit` busy-wait starved CPU 0 → a *task-watchdog
+  warning* (no reboot). LoRa is unfinished scaffold; `lora down`
+  removes it from the TCP test. (Pre-existing follow-ups, unrelated to
+  Resource: link packets shouldn't broadcast to LoRa; the LoRa TX
+  busy-wait should feed the watchdog.)
+- **Incompressible payloads only.** bz2 is disabled by design
+  (SF_COMPRESSION advertised absent). A compressible payload is bz2'd
+  by upstream LXMF and **correctly dropped** (`dropping compressed
+  inbound payload`). Binary/attachment payloads (the realistic large
+  case) work. For compressible *text* from a non-SF-respecting peer to
+  succeed, the device's lxmf advertising SF_COMPRESSION-absent so
+  compliant peers don't compress is a separate lxmf-layer follow-up
+  (not Resource-engine).
