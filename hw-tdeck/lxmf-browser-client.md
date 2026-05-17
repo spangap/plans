@@ -16,7 +16,9 @@ The three user-facing nouns this client is built around:
 - **Announces** — everyone heard on the mesh, cross-identity, ephemeral
   (`lxmf.announces.<hash>`, capped by `s.lxmf.max_announces`). Sideband
   calls this the "Announce Stream"; same idea.
-- **Messages** — conversations (`s.lxmf.id.<n>.msgs.<key>`).
+- **Messages** — conversations (`s.lxmf.id.<n>.msgs.<peer>.<key>`,
+  stored per contact — see
+  [lxmf-messages-per-contact.md](lxmf-messages-per-contact.md)).
 
 ---
 
@@ -122,9 +124,13 @@ peerDirectory     // unified Contacts ∪ Announces for the picker
 unreadTotal       // Σ messages with dir=in & read=0
 ```
 
-`conversations` is the heart of it: a `computed` that walks
-`s.lxmf.id.<active>.msgs.*`, **groups strictly by `peer`** (not by the
-`thread` field — see §5), and produces one row per peer with last
+`conversations` is the heart of it: a `computed` over
+`s.lxmf.id.<active>.msgs.*`. The store is **already keyed per peer**
+(`msgs.<peer>.<key>` — see
+[lxmf-messages-per-contact.md](lxmf-messages-per-contact.md)), so this
+is a direct iteration of peer subtrees, not a group-by over a `peer`
+field (the field is still present, redundantly). Threading is by
+`peer`, never the `thread` field (§5). One row per peer with last
 message, timestamp, unread count, and resolved display name (Contacts
 name → Announce name → truncated hash).
 
@@ -132,10 +138,10 @@ name → Announce name → truncated hash).
 
 | Verb | Storage effect |
 |---|---|
-| `send(peer, title, content, opts?)` | one `sendJson()`: write the `msgs.<o_key>` draft record **and** `lxmf.id.<n>.cmd.send=<key>` in a single DC message — atomic, the firmware-side equivalent of `storageBegin/End`. |
-| `resend(key)` | re-write `cmd.send=<key>` (no auto-retry exists). |
-| `cancel(key)` | `cmd.cancel=<key>`. |
-| `deleteMessage(key)` | `cmd.delete=<key>`, paced one-at-a-time (single-sentinel caveat in [../lxmf.md](../lxmf.md)). |
+| `send(peer, title, content, opts?)` | one `sendJson()`: write the `msgs.<peer>.<o_key>` draft record **and** `lxmf.id.<n>.cmd.send=<peer>/<o_key>` in a single DC message — atomic, the firmware-side equivalent of `storageBegin/End`. |
+| `resend(peer, key)` | re-write `cmd.send=<peer>/<key>` (no auto-retry exists). |
+| `cancel(peer, key)` | `cmd.cancel=<peer>/<key>`. |
+| `deleteMessage(peer, key)` | `cmd.delete=<peer>/<key>`, paced one-at-a-time (single-sentinel caveat in [../lxmf.md](../lxmf.md)). A whole-thread delete is `cmd.delete=<peer>` (bare peer). |
 | `markRead(key)` | `set(...read=1)` — local UI only; firmware ignores it. |
 | `announceNow()` | `lxmf.id.<n>.cmd.announce=1`. |
 | `createIdentity` / `importIdentity` / `destroyIdentity` | `lxmf.cmd.identity_*` sentinels (used by the Settings panel only). |
@@ -186,11 +192,13 @@ screen (no fixed two-pane assumptions, no hover-only affordances).
 
 ## 5. Threading model — group by peer, not by `thread`
 
-`s.lxmf.id.<n>.msgs.<key>.thread` is a root-message-id *reply pointer*,
-not the conversation key. Real LXMF traffic (Sideband/NomadNet) is
-effectively flat per peer. So:
+`s.lxmf.id.<n>.msgs.<peer>.<key>.thread` is a root-message-id *reply
+pointer*, not the conversation key. Real LXMF traffic
+(Sideband/NomadNet) is effectively flat per peer. So:
 
-- The conversation unit is **`peer`**. `conversations` groups on it.
+- The conversation unit is **`peer`** — and now also the storage
+  partition (`msgs.<peer>.*`), so this falls out of the layout for
+  free rather than being a client-side group-by.
 - `thread` is ignored for layout in v1. It is retained only as an
   optional future "in reply to" quote affordance.
 
