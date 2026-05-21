@@ -5,9 +5,15 @@ entirely on top of the LXMF storage contract. No new DataChannel, no new
 ITS port, no protocol work — every screen is a reactive view over the
 config-tree mirror and every action is a storage write.
 
-Status: design-ready as of 2026-05-17. Consumer of the LXMF subsystem as
-described in [../lxmf.md](../lxmf.md) (black-box / storage API) — read
-that first; this plan does not restate the schema, it maps it onto a UI.
+Status: **v1 implemented 2026-05-18** (browser form factor, all six
+phases) — `web-interface/src/modules/lxmf.ts` (state layer) + the
+`components/lxmf/*` view layer + `panels/{MessagesWindow,AnnouncesWindow,
+LxmfPanel}.vue` composition roots, wired into `boot/modules.ts` and
+`MainLayout.vue`. SPA builds and type-checks clean. Not yet
+hardware-verified against a live upstream peer (the Phase 2–4
+visibility check). Consumer of the LXMF subsystem as described in
+[../lxmf.md](../lxmf.md) (black-box / storage API) — read that first;
+this plan does not restate the schema, it maps it onto a UI.
 
 The three user-facing nouns this client is built around:
 
@@ -115,14 +121,26 @@ the reactive `settings` mirror, so multi-frontend coherence is free
 
 ```ts
 identities        // [{ n, label, displayName, up, destHash }]   from s.lxmf.id.*
-activeIdentity    // ref<number>, default lowest loaded slot
+activeIdentity    // ref<number>, client-local (see §3.3), default lowest loaded slot
 conversations     // Conversation[]  — msgs grouped by peer, newest-first
 activeConversation// messages for activePeer, ascending, day-bucketed
 contacts          // this identity's address book, by peer
 announces         // parsed lxmf.announces.* → [{ hash, name, lastSeen, hops, cost }]
 peerDirectory     // unified Contacts ∪ Announces for the picker
 unreadTotal       // Σ messages with dir=in & read=0
+displayName(peer) // memoized resolver: Contacts.display_name → announce name → hash[0:8]…
+peerAvatar(peer)  // pure: deterministic identicon (hue from hash bytes, initials from name)
+reachability(peer)// announce-catalogue entry → { lastSeenS, hops } | null (never a "presence" claim)
 ```
+
+`displayName` / `peerAvatar` / `reachability` are **pure functions of a
+snapshot**, recomputed once per render off the contacts+announce
+revision, not per row (per §9's name-thrash risk). They live in the
+state layer with no DOM, so the device port reuses them verbatim.
+`peerAvatar` is the open identicon question made concrete: hue =
+function of the first hash bytes, glyph = up-to-two initials of the
+resolved name (hex prefix if unnamed) — legible at 24 px, identical on
+320×240.
 
 `conversations` is the heart of it: a `computed` over
 `s.lxmf.id.<active>.msgs.*`. The store is **already keyed per peer**
@@ -138,19 +156,53 @@ name → Announce name → truncated hash).
 
 | Verb | Storage effect |
 |---|---|
-| `send(peer, title, content, opts?)` | one `sendJson()`: write the `msgs.<peer>.<o_key>` draft record **and** `lxmf.id.<n>.cmd.send=<peer>/<o_key>` in a single DC message — atomic, the firmware-side equivalent of `storageBegin/End`. |
-| `resend(peer, key)` | re-write `cmd.send=<peer>/<key>` (no auto-retry exists). |
+| `send(peer, content, opts?)` | one `sendJson()` of a **single nested patch** carrying both `msgs.<peer>.<o_key>.{dir,peer,title,content,stage:draft}` and `lxmf.id.<n>.cmd.send=<peer>/<o_key>` — one DC message = one storage patch = atomic, the firmware-side equivalent of `storageBegin/End`. |
+| `resend(peer, key)` | re-write `cmd.send=<peer>/<key>` (no auto-retry exists; per [../lxmf.md](../lxmf.md)). |
 | `cancel(peer, key)` | `cmd.cancel=<peer>/<key>`. |
-| `deleteMessage(peer, key)` | `cmd.delete=<peer>/<key>`, paced one-at-a-time (single-sentinel caveat in [../lxmf.md](../lxmf.md)). A whole-thread delete is `cmd.delete=<peer>` (bare peer). |
-| `markRead(key)` | `set(...read=1)` — local UI only; firmware ignores it. |
+| `deleteMessage(peer, key)` | `cmd.delete=<peer>/<key>`. Whole-thread = `cmd.delete=<peer>` (bare peer). |
+| `markConversationRead(peer)` | **one** `sendJson()` setting `read=1` on every inbound-unread key in `msgs.<peer>` — local UI only, firmware ignores it, no sentinel. |
 | `announceNow()` | `lxmf.id.<n>.cmd.announce=1`. |
-| `createIdentity` / `importIdentity` / `destroyIdentity` | `lxmf.cmd.identity_*` sentinels (used by the Settings panel only). |
+| `createIdentity` / `importIdentity` / `destroyIdentity` | `lxmf.cmd.identity_*` sentinels (Settings panel only). |
 
-`send()` keys follow the documented convention `o_<unix_ms>_<rand4>` and
-default `method` unset (firmware picks `auto`). No client retry logic,
-no optimistic dedup — the firmware owns `stage`/`message_id`/`attempts`.
+Two implementation rules that the API forces and the plan must pin
+down, both verifiable in [../../web-interface/src/stores/device.ts](../../web-interface/src/stores/device.ts):
+
+- **Atomicity is one `sendJson(nestedObj)`, never two `set()`s.** The
+  device store sends one DC message per call; `set(path,val)` is one
+  leaf, so a record + its `cmd` sentinel written as two `set()`s race
+  (firmware can see the sentinel before the body). The state layer
+  builds the combined nested object itself and calls `sendJson` once.
+  Same rule for `markConversationRead`: one patch over all keys, not a
+  `set()` per message.
+- **Per-sentinel serialization, not one global queue.** `cmd.send`,
+  `cmd.cancel`, `cmd.delete`, `cmd.announce` are four *distinct* keys
+  per identity, each single-valued and firmware-cleared. The state
+  layer holds **one small queue per `cmd` key per identity**: the next
+  enqueued write for that key waits until the mirror shows the key
+  `undefined` again (firmware deleted it = done), with a timeout
+  fallback. Different cmd kinds do not block each other; rapid same-kind
+  actions (delete-delete, send-send) serialize. This replaces §9's
+  "a small action queue" — one global queue would needlessly stall a
+  `delete` behind an in-flight `send`.
+
+`send()` keys follow the documented convention `o_<unix_ms>_<rand4>`,
+write `title=""` (we are content-only — §1 non-goals), and leave
+`method` unset unless `opts.method` is given (firmware picks `auto`). No
+client retry logic, no optimistic dedup — the firmware owns
+`stage`/`message_id`/`attempts`/`last_error`.
 
 ---
+
+### 3.3 `activeIdentity` is client-local, not the CLI's selection
+
+`s.lxmf.cli.selected_id` is the **CLI's** selected identity. The browser
+must **not** read or write it: the CLI and a browser tab legitimately
+view different identities at the same time, and the multi-frontend
+coherence guarantee is about *shared message state*, not about hijacking
+each other's view cursor. `activeIdentity` is therefore a client-local
+`ref` (optionally persisted to `localStorage`, never to the device),
+defaulting to the lowest loaded slot. This keeps the single-identity
+common case invisible (§7.1) without coupling two frontends' navigation.
 
 ## 4. View layer — components
 
@@ -170,11 +222,20 @@ screen (no fixed two-pane assumptions, no hover-only affordances).
   Footer carries the **status chip** (§6). `failed` shows `last_error`
   inline with a one-tap **Resend**; `sending`/`queued` show progress;
   `cancelled` is muted. Long-press / context → Delete, Copy.
-- **Composer** — text only. Send button writes via `send()`. A faint
-  hint flips to "will send DIRECT" when `title+content+~32 B` exceeds
-  the ~311 B opportunistic budget (informational, never blocking).
-  `outbox full` / `too large for opportunistic` surface as inline
-  errors on the resulting `failed` bubble, not modals.
+- **Composer** — text only. **No persisted draft record.** Unsent text
+  is component/state-layer memory only — a per-peer in-memory
+  `Map<peer,string>` so switching threads and back preserves what you
+  typed (Signal-faithful) while never writing a `stage=draft` record or
+  touching storage (consistent with the platform's no-"save" rule). A
+  record springs into existence only when Send is pressed, written
+  *with* its `cmd.send` in the one atomic patch (§3.2). Consequence: the
+  persisted `draft` stage never appears in this client's UI — every
+  stored message is already at least `queued`, so there is no
+  "draft bubble" state to render (resolves §5/§6). A faint hint flips to
+  "will send DIRECT" when `content+~32 B` exceeds the ~311 B
+  opportunistic budget (informational, never blocking). `outbox full` /
+  `too large for opportunistic` surface as inline errors on the
+  resulting `failed` bubble, not modals.
 - **PeerPicker** — "New message". Search box over `peerDirectory`:
   Contacts on top (you've talked to them), then Announces
   (searchable, name-substring + hash). Selecting opens/creates the
@@ -223,7 +284,10 @@ Signal's shapes, but the receipt semantics must not lie about the mesh:
    [../lxmf.md](../lxmf.md) ("Sending a message"):
 
    ```
-   draft     → (editable, not yet shown as a real bubble)
+   draft     → never rendered: this client writes the record only at
+               Send, atomically with cmd.send, so no stored message is
+               ever observed at draft (§4 Composer). Listed for
+               completeness against the schema.
    queued    → clock
    sending   → spinner  (+ last_error as transient sub-text: "establishing link"…)
    sent      → ✓        (tooltip per #2)
@@ -291,17 +355,26 @@ completeness.
 
 ## 9. Risks / open points
 
-- **`cmd.*` single-sentinel races.** `send`/`delete`/`cancel` share one
-  key each per identity. `useLxmf()` must serialize rapid actions
-  (settle between writes), per the caveat in [../lxmf.md](../lxmf.md).
-  A small action queue in the state layer, not ad-hoc in components.
+- **`cmd.*` single-sentinel races.** *Resolved in §3.2:* per-`cmd`-key
+  queues that wait for the mirror to show the key cleared. The residual
+  risk is the timeout-fallback path (firmware never clears the key — a
+  wedged task); on timeout the queue surfaces an inline error rather
+  than silently dropping the next action.
 - **`sent`→`delivered` only on DIRECT/Resource.** The UI must never
   imply opportunistic `sent` is a failure (designed in §6, but easy to
   regress — covered by a Phase 3 check against a real peer).
-- **Name resolution precedence** (Contacts → Announce → hash) can flip
-  as announces churn; resolve once per render from the snapshot, don't
-  thrash the rail.
-- **Identicon scheme** from the destination hash — pick something
-  deterministic and legible at 24 px (works on 320×240 too). Open.
+- **Name resolution precedence** (Contacts → Announce → hash): *the
+  thrash is the bug, not the precedence.* §3.1's memoized
+  snapshot-pure `displayName` is the mitigation — recompute on the
+  contacts+announce revision, never per row, so a churning announce
+  catalogue cannot reorder or rename the rail mid-scroll.
+- **Reachability surface, bounded.** `reachability(peer)` renders only
+  as a faint secondary line in the *thread header* ("heard 4m ago · 2
+  hops"), and silently nothing if the peer was never heard. Never in
+  the conversation list, never a coloured/“online” dot — the closest
+  honest signal is announce age, not presence (§1 non-goals). This is
+  the "honest about the network" principle given an exact, minimal
+  surface so it can't grow into a presence indicator by accident.
 - **Multi-identity merged view** is explicitly *not* v1 (single active
-  identity); revisit only if a real multi-identity workflow appears.
+  identity, client-local per §3.3); revisit only if a real
+  multi-identity workflow appears.
