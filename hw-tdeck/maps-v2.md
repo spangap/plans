@@ -29,10 +29,9 @@ are ~5–25 KB (ocean ~1 KB), ~7–13× denser → **world to ~z8–9 in 1 GB**.
   into the cache slot on the **worker** task, off the UI), falling back to
   `.bin` (the existing raw path). Decoder: esp_jpeg (TJpgDec) or LVGL's built-in
   — confirm at build; 256×256 decode is a few–tens of ms, fine on the worker.
-- **Toolchain**: `maketiles.py` emits `.jpg` (Pillow, quality flag). The pure
-  stdlib `testtiles.py` keeps emitting `.bin` (no encoder in stdlib) — that's why
-  the device keeps the raw path. Not a user migration concern (install base
-  zero), just dev convenience.
+- **Toolchain**: `maketiles.py` emits `.jpg` by default (Pillow, quality flag)
+  or raw `.bin` with `--bin` — that's why the device keeps the raw path. Not a
+  user migration concern (install base zero), just dev convenience.
 
 ## Overzoom fallback
 
