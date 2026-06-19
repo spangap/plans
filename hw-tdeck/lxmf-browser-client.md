@@ -1,6 +1,6 @@
 # LXMF browser client — design proposal
 
-A Signal-faithful messaging client for the `diptych-browser` SPA, built
+A Signal-faithful messaging client for the `spangap-browser` SPA, built
 entirely on top of the LXMF storage contract. No new DataChannel, no new
 ITS port, no protocol work — every screen is a reactive view over the
 config-tree mirror and every action is a storage write.

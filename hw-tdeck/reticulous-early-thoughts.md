@@ -718,7 +718,7 @@ path-table compaction, LXMF propagation node sync, etc.
 
 ### 7.3 mDNS helping peer discovery on LAN
 
-mDNS (already running via `sc_mdns`) can advertise `_reticulum._udp`
+mDNS (already running via `spangap_mdns`) can advertise `_reticulum._udp`
 on the LAN for zero-config peer discovery. Two nodes on the same
 WiFi then find each other by mDNS without needing multicast RNS
 announces. Redundant with AutoInterface if we implement
@@ -726,7 +726,7 @@ AutoInterface properly, but cheaper to implement mDNS first and get
 peer discovery working end-to-end.
 
 Registering one more service ad alongside the existing `_http`,
-`_https`, `_rtsp` entries in `sc_mdns.cpp` is trivial.
+`_https`, `_rtsp` entries in `spangap_mdns.cpp` is trivial.
 
 ### 7.4 Web task and HTTP-01 webroot conflict
 

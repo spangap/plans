@@ -16,7 +16,7 @@ Apache-2.0 — algorithm reference only; adapt to our fork's APIs.
 
 Branch `phase-f-resource` (Phases A–E are on `main` beneath at
 `e2bb0ae`). Build is **0-warning** throughout
-(`cd reticulous && umask 000 && /tmp/idfenv.sh --diptych build`).
+(`cd reticulous && umask 000 && /tmp/idfenv.sh --spangap build`).
 Steps 1–3 + the Step-4 HW fixes are committed, one commit per concern:
 
 - `7538fdd` engine ported · `1af435b` proof/hash wire corrected to
@@ -69,7 +69,7 @@ Steps 1–3 + the Step-4 HW fixes are committed, one commit per concern:
    freed*; logs `.rns/phasef-95.log`, emits one line per milestone.
    Run it (background/Monitor) and record results. Expected:
    oversize → `onResAdvertised` returns false, no alloc, in-count
-   unchanged; soak → `diptych-cli top` PSRAM `min` flat across 10;
+   unchanged; soak → `spangap-cli top` PSRAM `min` flat across 10;
    drop → `link[in.*]: resource inbound failed`, PSRAM recovers.
 2. **Device-as-SENDER large outbound Resource** (>~34 KB, i.e.
    >`HASHMAP_MAX_LEN`≈74 parts, device→peer). Receiver multi-seg is
@@ -97,20 +97,20 @@ Steps 1–3 + the Step-4 HW fixes are committed, one commit per concern:
   absent) — compressible payloads are *correctly* dropped
   (`Resource: dropping compressed inbound payload`); that is not a
   bug. Real attachments (already-compressed) are incompressible.
-- **LoRa off for all tests** (`diptych-cli "lora down"`). LoRa is
+- **LoRa off for all tests** (`spangap-cli "lora down"`). LoRa is
   pre-Phase-3 scaffold; under Resource packet volume its TX path
   starves CPU0 → `task_wdt` (CPU 0: lora). Unrelated to Phase F — do
   **not** chase it.
 - `build/flasher.log` **is the live device serial log** (the apparent
   ~2 h lag was UTC; device tz is now `Europe/Berlin` and matches the
-  host). The diptych-cli port **persists across flash**, so detect a
+  host). The spangap-cli port **persists across flash**, so detect a
   reflash by the post-flash boot banner in flasher.log
   (`Returned from app_main` / `cli: end /state/boot`), *not* by
-  diptych-cli becoming unreachable.
+  spangap-cli becoming unreachable.
 - Rig: device `lxmf.delivery` = `e9904da9695d0394ab52d8e1fe25c0a5`;
   dev-loop rnsd via `scripts/rns up`; `scripts/lxmf-send <hash>
   --size N --method direct`; `scripts/lxmf-echo --echo --pad N`.
-  Device heap/PSRAM: `diptych-cli top` (`PSRAM free X/Y min Z` —
+  Device heap/PSRAM: `spangap-cli top` (`PSRAM free X/Y min Z` —
   track `min` for leak). Device CLI input is line-capped (~440 B) so
   big device-originated sends can't be typed — drive inbound with
   `lxmf-send`; for outbound use forced `direct` + an oversize body.
@@ -253,7 +253,7 @@ Bytes                _assembled;        // cached for proof/data()
 ## Build/verify strategy (§9.0: not incrementally HW-verifiable)
 
 1. Engine bodies in Resource.cpp + ResourceData/Resource.h + add
-   `ResourceFlags`; keep Link.cpp untouched first → `idf.py --diptych
+   `ResourceFlags`; keep Link.cpp untouched first → `idf.py --spangap
    build` green (engine compiles standalone, 0 warnings).
 2. Wire Link.cpp contexts → build green.
 3. rnsd §9.1 + lxmf 101 → build green.
@@ -270,9 +270,9 @@ Each numbered step is one reviewable commit on this branch.
   `main` beneath it (`e2bb0ae`).
 - **Never commit to `main`.** One commit per numbered step (§"Build/
   verify"), on this branch. Do not push (user controls remotes).
-- **diptych stays on `main`** — Phase F is reticulous-only
+- **spangap stays on `main`** — Phase F is reticulous-only
   (`components/microreticulum/` + `main/lxmf.cpp` + `main/rnsd.cpp`).
-  No diptych-core changes are expected; if one becomes necessary that
+  No spangap-core changes are expected; if one becomes necessary that
   is a *new* fork — surface it.
 - Don't `git add` `web-interface/package-lock.json` (deliberately
   untracked since `7f87eaf`). `research/` is gitignored by design.
@@ -280,7 +280,7 @@ Each numbered step is one reviewable commit on this branch.
 ## Build / flash / test environment
 
 The bare `idf.py` wrapper has a silent-exit-1 bug (sourced-probe;
-see diptych `docs/development.md`). Reconstruct the working wrapper
+see spangap `docs/development.md`). Reconstruct the working wrapper
 (machine-local, not in git):
 
 ```sh
@@ -295,19 +295,19 @@ export PATH="$HOME/.nvm/versions/node/v22.22.2/bin:$(printf '%s\n' "$E"|sed -n '
 exec "$IDF_PYTHON_ENV_PATH/bin/python" "$IDF_PATH/tools/idf.py" "$@"
 ```
 
-- **Build:** `cd reticulous && umask 000 && /tmp/idfenv.sh --diptych
-  build` (the `--diptych` flag pulls the sibling diptych-core checkout,
+- **Build:** `cd reticulous && umask 000 && /tmp/idfenv.sh --spangap
+  build` (the `--spangap` flag pulls the sibling spangap-core checkout,
   required — the storage fix lives there). Confirm `EXIT=0` and
   `grep -ciE 'warning:' == 0`.
 - **Flash:** host runs a flasher daemon. From the VM:
-  `flasher host /Volumes/code/diptych/reticulous` touches
+  `flasher host /Volumes/code/spangap/reticulous` touches
   `build/flashme`; daemon flashes + reboots. Wait until `build/flashme`
-  is consumed, then poll `diptych-cli date` for a `2026-*` reply.
+  is consumed, then poll `spangap-cli date` for a `2026-*` reply.
 - **Device output is NOT tee'd here** (`build/flasher.log` is stale).
-  Interrogate live via `diptych-cli "<cmd>"` (default host
+  Interrogate live via `spangap-cli "<cmd>"` (default host
   `reticulous.local` = 192.168.2.22, CLI port persists across flash),
   the dev-loop `.rns/rnsd.log`, and storage observability
-  (`diptych-cli "show rnsd.links"`, `"show rnsd.mailbox"`,
+  (`spangap-cli "show rnsd.links"`, `"show rnsd.mailbox"`,
   `"rnsd links"`, `"lxmf msgs"`).
 - **Test rig (host, this machine = 192.168.2.21):**
   `scripts/rns up &` (dev-loop rnsd, :4242 + shared :37428);
@@ -444,7 +444,7 @@ Results (device `e9904da9…lxmf.delivery`, LoRa disabled — see note):
   lxmf/storage delete-or-show inconsistency, harmless, unrelated to F.
 
 **Device-outbound Resource: HW-VERIFIED (2026-05-16 16:04, HEAD
-`9ac0ea7`).** `diptych-cli "lxmf send <echo> @rand50000"` (the
+`9ac0ea7`).** `spangap-cli "lxmf send <echo> @rand50000"` (the
 `3da6928` test affordance — device CLI line buffer is 128 B, so a
 >74-part body can't be typed; `@randN` substitutes an N-byte
 incompressible body) → 50111 B wire → `SEND_RESOURCE deferred (link

@@ -57,7 +57,7 @@ cache already keys on `(z,x,y)` so mixed-zoom entries coexist.
 
 ## Pinch zoom + multi-touch
 
-- **diptych-core lcd** (generic, board-agnostic, no storage knowledge):
+- **spangap-core lcd** (generic, board-agnostic, no storage knowledge):
   `lcdTouchSetMultipoint(bool)` — read up to 5 points; **point 0 still feeds the
   LVGL pointer indev** so normal UI is unaffected; when ≥2 fingers are down,
   report the pointer RELEASED so LVGL doesn't also act on the moving finger.

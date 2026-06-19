@@ -103,7 +103,7 @@ All in [../../main/lxmf.cpp](../../main/lxmf.cpp):
 - **`cliEnqueueSend`** — writes the draft under the peer subtree and
   posts `cmd.send = <peer>/<key>` in the same `storageBegin/End`.
 
-Path depth: `navigatePath`/`navigateOrCreate` in diptych-core
+Path depth: `navigatePath`/`navigateOrCreate` in spangap-core
 `storage.cpp` are depth-unbounded `while (*p)` walks — only the 96-byte
 per-segment cap matters; a 32-hex peer segment is well under it. No
 max-depth constant exists. No migration / version bump: install base is
