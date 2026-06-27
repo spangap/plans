@@ -1,166 +1,174 @@
-# Documentation overhaul — rnsd / rns straddle
+# Documentation in this project — the standard, and how to fix it
 
-Guidelines for future instances, and a precise record of what was done. Read this
-before touching rnsd documentation, comments, or the terminology below. Where this
-document and older notes disagree, this document wins.
+A reusable playbook for writing and overhauling a straddle's documentation. It
+applies equally to **every** straddle. Follow it whenever you create, consolidate,
+or clean up docs. (The `rns` straddle is the current reference example of the
+end state.)
 
-## The rule it establishes
+## The standard: README + INTERNALS, scaled to the straddle
 
-**All rnsd documentation lives in exactly two files:**
+The two roles are always the same — an **operator guide** and a **maintainer
+reference** — but how they're laid out depends on how much the straddle does.
 
-- [`rns/README.md`](../rns/README.md) — the **operator / user guide**.
-- [`rns/INTERNALS.md`](../rns/INTERNALS.md) — the **maintainer reference**.
+**Default (a mono-function straddle — most straddles, e.g. `rns`):** exactly
+**two files at the straddle root**:
 
-There is **no rnsd documentation in `hw-tdeck/`** and **no rnsd design plan**.
-Do not recreate `hw-tdeck/docs/rnsd.md` or a `link.md`-style plan. If you learn
-something durable about rnsd, it goes in one of those two files (README if an
-operator needs it, INTERNALS otherwise) — not a new doc.
+- **`<straddle>/README.md`** — the operator / user guide.
+- **`<straddle>/INTERNALS.md`** — the maintainer reference.
 
-### README.md — required shape
+**Large, multi-function straddles (e.g. `spangap-*`):** one pair for the whole
+thing would be unwieldy, so the same roles spread out by function:
 
-Operator-facing, example-driven, not a header dump:
+- **`<straddle>/README.md`** — a **general overview** of the whole straddle: what
+  functions it contains, how they fit together, and a pointer to each function's
+  doc. It is *not* the operator guide for every function.
+- **`<straddle>/docs/<function>.md`** — **one per major function.** Each plays the
+  role README plays in a mono-function straddle (the operator guide for *that*
+  function), and **ends with an `## Internals` chapter** — as long as it needs to
+  be — that plays the role `INTERNALS.md` plays there. So these straddles have **no
+  separate `INTERNALS.md`**: internals live in the trailing chapter of each
+  function's doc.
 
-1. One-paragraph what-it-is + the Reticulum one-liner.
-2. **Origins** — brief: a *modified fork* of `attermann/microReticulum`, plus
-   the one-line summary of what we added/changed (detail goes to INTERNALS).
-3. What it owns (tree), what it does (the interface↔rnsd↔lxmf/nomad picture).
-4. **How interfaces / lxmf / nomad talk to it** — short narrative + one minimal
-   consumer code example. (Do **not** tell users to call `rnsdInit()`; the
-   build's generated init starts rnsd — "if `rns` is in your build, it's running.")
-5. ITS port map (table).
-6. **Full storage-variable list** — settings (with defaults), runtime/telemetry,
-   command sentinels, secrets. This must be exhaustive and verified against code.
-7. CLI / user manual, including `rnstatus` and `rnpath` (and `rnpath -d` is
-   destructive).
+Either way, the **shapes below apply**: the operator part follows the operator-guide
+shape; the maintainer part follows the maintainer shape — whether it's the
+`INTERNALS.md` file or the `## Internals` chapter.
 
-### INTERNALS.md — required shape
+Hard rules (both layouts):
+- **A straddle's docs live in that straddle.** Never document straddle A inside
+  straddle B (e.g. an app's docs under a board straddle). Fold a stray doc into the
+  owning straddle and delete it (fixing refs).
+- **No plan file is documentation.** Plans under `plans/` are scratch history, not
+  the source of truth. The docs stand on their own; they don't defer to a plan.
+- **`docs/` is only for the multi-function pattern** — one self-contained file per
+  function (operator guide + `## Internals` chapter), never arbitrary per-subsystem
+  fragmentation. A mono-function straddle keeps everything in its two root files;
+  if a section there grows big, it's a section, not a new file.
+- A genuinely cross-cutting, multi-straddle architecture doc is separate from any
+  straddle's docs (see Scope).
 
-Maintainer-facing. **§1 first: an exhaustive inventory of everything we changed
-or added to microReticulum and everything the rnsd layer adds.** Then the task
-model/threading rule, ITS framing, hosted destinations, the full link lifecycle,
-proof tracking, resource/request-response, boot barrier, persistence, maintainer
-pitfalls (§8), browser, bundled components, and the announce-app_data diagnostics.
-It is self-authoritative — it does **not** defer to an external plan.
+### Operator-guide shape (a mono-function `README.md`, or a `docs/<function>.md`)
 
-## Terminology (enforce in code, comments, and docs)
+Operator-facing, example-driven, **not a header dump**. (A multi-function
+straddle's top `README.md` is lighter — a what's-here overview that indexes the
+per-function docs — not this full guide.)
 
-| Use | Not | Why |
-|---|---|---|
-| **interface** / `iface` | "transport" (when it means a world-facing link) | "Transport" is mR's internal packet router; the things that talk to the world (tcp/lora/espnow/auto) are *interfaces*. |
-| **our-dest** (`our_dest_t`, `s_our_dests`, `rnsd.dest.*`) | "mailbox" | "mailbox" is not Reticulum vocabulary (Reticulum says *Destination*) and collides with ITS's own "mailbox" message-queue term. |
-| **modified fork** of µR | "vendored fork" | It's our fork; "vendored" only fits literally-bundled third-party (bzip2, donna crypto). |
+1. One-paragraph what-it-is.
+2. **Origins** — brief. If the straddle wraps/forks/ports something, say so in a
+   line and point detail to INTERNALS.
+3. What it does, and **how it interacts with the other straddles** — short
+   narrative plus one minimal, real usage example ("it opens an ITS connection to
+   PORT_X sending struct Y; then the handle is the data pipe…").
+4. The public surface: ports / API / opcodes (table, with a pointer to the header
+   for exact layouts).
+5. **The full storage-variable list** — settings (with defaults), runtime/
+   telemetry, command sentinels, secrets. Exhaustive, and verified against code.
+6. CLI / user manual.
 
-**Keep `Transport` where it genuinely means mR's router:** `RNS::Transport`,
-`Transport.cpp`, `Transport::request_path`, "transport node",
-`s.rnsd.transport_enabled`, and the RNS app-name `rnstransport.*` all stay.
+Don't tell users to call an `init()` the build's generated init already calls —
+state that it starts automatically when the straddle is in the build.
 
-Renames performed (exact, for reference):
+### Maintainer shape (an `INTERNALS.md`, or a `## Internals` chapter)
 
-- `RNSD_PORT_TRANSPORT` → `RNSD_PORT_IFACE`; `rnsd_transport_t` → `rnsd_iface_t`
-  (in rns + all four iface straddles: tcp, lora, espnow, auto).
-- `mailbox_conn_t`→`our_dest_t`, `mailbox_pending_t`→`our_dest_pending_t`,
-  `mailbox_receipt_t`→`our_dest_receipt_t`, `s_mailbox_conns`→`s_our_dests`,
-  `s_mailbox_receipts`→`s_our_dest_receipts`, `mailbox*()`→`ourDest*()`,
-  `onMailbox*`→`onOurDest*`, `RNSD_MAX_MAILBOX_CONNS`→`RNSD_MAX_OUR_DESTS` (and the
-  other `RNSD_*MAILBOX*` macros), storage `rnsd.mailbox.<idx>.*`→`rnsd.dest.<idx>.*`,
-  and lxmf's `connectMailbox`/`onMailbox*` → `connectOurDest`/`onOurDest*`.
-- ITS's own "mailbox" concept in `spangap-core` is a *different* thing (message
-  inbox) — leave it alone.
+Maintainer-facing. **§1 first: an exhaustive inventory** of everything this
+straddle changed or added relative to its upstream/baseline, and everything it
+adds on top. Then: the task/threading model and ownership rules, the wire/IPC
+framing, lifecycle details, and a dedicated **pitfalls** section. It is
+self-authoritative.
 
-## Code-comment rules (applied; keep applying)
+## Terminology discipline
 
-- **No plan-phase scaffolding** in comments or user-facing strings: strip
-  `Phase A`–`Phase G`, `Phase 0/1`, `§N.N` section markers, and pointers to
-  `docs/plans/*`, `link.md`, `nomad.md §`, `lxmf.md`, `component-plan.md`.
-  De-phase CLI help text too ("(Phase B)" etc.).
-- **No "we used to / previously / no longer" historical asides** — *unless* the
-  note states a concrete pitfall a maintainer must avoid. Then keep the pitfall,
-  drop the narration.
-- When a comment leaned on a plan reference for meaning, replace it with a plain
-  inline description; never leave dangling text. Durable knowledge that the plan
-  carried goes into INTERNALS, not back into the comment.
-- Don't reference memories, slugs, or `[[links]]` in code/commits/docs.
+- **Use the real vocabulary** — the upstream library's or the protocol's terms,
+  and the platform's existing names. Don't invent an in-house word for a concept
+  that already has one.
+- **Don't coin names that collide** with a platform primitive's term (the same
+  word meaning two different things across straddles is a trap).
+- **Pick the precise word**, and keep a borrowed-but-misused term out (e.g. a
+  word that means one thing in the core but got reused loosely here).
+- When you rename, do it **across code, comments, and docs in the same pass**, and
+  verify zero stragglers of the old token.
 
-Files scrubbed this pass: `rnsd.cpp`, `rnsd.h`, `ports.h`, `lxmf.cpp`/`.h`,
-`nomad.cpp`/`.h`, the microreticulum `CMakeLists.txt`, and µR src comments in
-`Resource.cpp`, `Type.h`, `Link.cpp` (which referenced `link.md`).
+## What belongs, and what doesn't
 
-## Behavioral changes made in this pass (so you know the current state)
+The governing principle, for both docs and code comments: **describe the present,
+not the path to it.** Write as if the code has always looked this way. Anything
+that narrates the *journey* — how it used to be, the order it was built in, what's
+planned next — is out. The only admissible history is a trap a maintainer could
+re-introduce, and even then you state the rule, not the story.
 
-These were code changes, not just docs — don't undo them:
+**Cut — keep none of this:**
 
-- **Link lifetime == the consumer's ITS handle, 1:1. No parking.** Removed
-  `orphan_ttl` parking, the explicit teardown aux + `rnsdLinkTeardown()`, and the
-  warm-reuse path. Closing the handle tears the Link down. Warm-hold is the
-  *consumer's* job (lxmf's conv-link pool, `s.lxmf.link.idle_s` default 600).
-- **`linkKickoff` asserts** the constructed OUT-destination hash equals the
-  caller's `dest_hash` (`last_error = aspect_mismatch` on mismatch) — catches a
-  wrong aspect for a hash, e.g. hash-only rnsh-style dials.
-- **µR `Destination::expand_name`**: an empty aspect no longer appends a trailing
-  dot, so an app-name-only destination (e.g. rnsh's `"rnsh"`) hashes the same as
-  upstream RNS. Only app-name-only destinations are affected.
-- **Documented Link as ours**: `Link` was a stub (`Link_stub.cpp`) before us; we
-  brought up the real `Link`, unblocked by the hand-rolled MsgPack shim. This is
-  recorded as the single largest µR addition in INTERNALS §1.1.
-- The microreticulum component `README.md` was reduced to a pointer to the rns
-  README/INTERNALS, keeping only the pinned-commit rationale and licensing.
+- **Plan phases / rollout order** — "Phase A–G", milestones, "next we'll…",
+  effort/risk/acceptance tables, sequencing diagrams, "deferred to a later phase".
+- **Pointers into plan docs** — `§N.N` anchors, links to `plans/*` or other
+  design docs, "see the plan".
+- **Old states of software** — "we used to", "previously", "originally", "no
+  longer", "before the refactor", "was X, now Y", "renamed from", "this replaces…",
+  migration history, mentions of removed features or deleted code paths.
+- **Dated / status prose** — "current status", "what works / what's left",
+  "files touched (uncommitted)", verification or soak logs, TODO-by-date,
+  who-did-what.
+- **Superseded or in-house terminology** — and any borrowed term used loosely
+  where a precise one exists.
+- **Plan-only facts** — keys, defaults, or features that live in a plan but not in
+  the code. Verify against source, then omit.
+- **Compiled-out / stubbed code described as if live** — if it's `#if 0`'d, a
+  stub, or unimplemented, say so plainly or leave it out; never present it as
+  working.
+- **Restatement of the header/signature verbatim** — docs add narrative and
+  examples, not a copy of the declarations.
+- **Scratch** — throwaway scripts, runbooks, build/CI noise, and any memory
+  references, slugs, or `[[links]]`.
 
-## How the consolidation was done (method to reuse)
+**Keep — this is the substance:**
 
-1. **Gather** every rnsd source: `hw-tdeck/docs/rnsd.md`, `plans/hw-tdeck/link.md`,
-   code comments, commit history, the microreticulum README, and the live headers
-   (`rnsd.h`, `ports.h`).
-2. **Write** README + INTERNALS from that material.
-3. **Coverage audit before deleting anything**: walk every fact, value, key,
-   opcode, CLI command, and pitfall in the deletion candidates and confirm it is
-   either (a) reflected in README/INTERNALS or (b) genuinely stale. Anything that
-   is neither gets **added** to the right file.
-4. **Verify every fact against live source, not the plan.** The plan docs carried
-   stale values. Confirmed-stale-and-excluded examples: `RNSD_MAX_LINK_CONNS=8`
-   (it's `32`), settings `s.rnsd.enable` / `s.rnsd.name` /
-   `s.rnsd.link.max_inbound_resources_per_link` (no reads exist in code). Do not
-   migrate a number from a plan without grepping the source.
-5. **Build after every code change.** The rename, the scrub, and the comment edits
-   were each followed by a clean full build.
+- **What it is and does**, and how it interacts with the other straddles.
+- **The current, true behavior and contracts**, in the present tense.
+- **The complete, verified surface** — every config/storage key, port, opcode, and
+  CLI command, with real defaults.
+- **Architecture and the ownership / threading rules.**
+- **Pitfalls and gotchas** — including a historical one *only* when it's a concrete
+  trap to avoid, framed as the rule ("X must be Y, because Z") not the anecdote
+  ("we changed X to Y").
+- **Rationale for non-obvious decisions** — *why* it's this way, stated as a
+  present fact.
+- **The exhaustive inventory** of what this straddle changed or added relative to
+  its baseline (INTERNALS §1).
 
-### Durable facts that were folded in from the deletion candidates
+This applies to **code comments too** — they are documentation. De-phase CLI help
+and log strings the same way; when a comment leaned on a plan reference, replace it
+with a plain inline description and move the durable part to INTERNALS.
 
-(So a future instance can confirm they survived.) Into README: `rnstatus` /
-`rnpath` commands, the `rnsd.paths` telemetry key. Into INTERNALS: the
-`demote_dbg` log-demotion patch; the opportunistic-vs-DIRECT 16-byte
-strip/prepend asymmetry; `rnsd persist` is a **no-op stub**; the staggered 1 Hz
-tick (avoids tcp ITS-send drops); the path-table-publish watchdog hazard + the
-64-entry cap; `sameLink` callback resolution; the signed-`int32` announce-due
-compare; the `thread_local`/`printf` bans and the µR-vs-spangap log-macro
-`push_macro` dance; the fact that `rnstransport.remote.management` is hosted but
-does **not** service requests yet; and the announce-`app_data` dialect/decoder
-diagnostics (§11).
+## How to run an overhaul (process)
 
-### Exceptions — encountered but deliberately not carried over
+1. **Gather** all source for the straddle: any scattered `.md`, the code comments,
+   the headers, and the commit history.
+2. **Write** the two files from that material.
+3. **Coverage audit before deleting anything.** Walk every fact, value, storage
+   key, opcode, CLI command, and pitfall in the material you intend to delete, and
+   confirm each is either (a) reflected in README/INTERNALS or (b) genuinely stale.
+   Anything that is neither gets **added** to the right file.
+4. **Verify every fact against live source — not the plan, not an older doc.**
+   Plans and stale docs carry wrong values. Grep the code before you migrate a
+   number, a key, or a default. (Watch for facts hidden behind indirection — e.g.
+   a key read through a macro variable rather than a literal string — and for code
+   that is compiled out, `#if 0`'d, or stubbed: don't document it as live.)
+5. **Build / test after any code or comment change** (a malformed comment can
+   break a build).
+6. **Classify the exceptions** — the things you did *not* carry over — so the
+   decision is on record: *stale/removed*, *plan-only (never in code)*, or
+   *domain-foreign (belongs in another straddle's docs)*.
+7. **Fix dangling references** in the files that stay, then delete the obsolete
+   ones.
+8. **Commit** in themed, per-repo commits: sign off (DCO `Signed-off-by`, **no AI
+   co-author trailer**), no memory refs in the message, and **stage only the files
+   this work touched** — never sweep unrelated working-tree changes into a doc
+   commit.
 
-- **Stale / removed behavior**: Link parking / `orphan_ttl` / explicit teardown,
-  §10a.2 reboot link persistence, all Phase A–G rollout/checklist prose, the old
-  "mailbox" term, `RNSD_PORT_REGISTER`→`TRANSPORT` history, the
-  `ITS_MAX_MSG_DATA` padding migration, the µR Link-status table.
-- **Plan-only, not in code**: `s.rnsd.enable`, `s.rnsd.name`,
-  `max_inbound_resources_per_link` — excluded as non-existent.
-- **Domain-foreign**: lxmf method-choice keys, the Phase-F `/state` retention
-  defect, the lxmf-internal ports 100/101 — these belong to lxmf's docs, not rns.
+## Scope boundaries
 
-## What was deleted, and the dangling refs fixed
-
-Deleted:
-- `hw-tdeck/docs/rnsd.md`
-- `plans/hw-tdeck/link.md`
-
-References repointed to `rns/README.md` / `rns/INTERNALS.md` (or had the
-plan-pointer removed): `hw-tdeck/INTERNALS.md`, `hw-tdeck/CLAUDE.md`,
-`hw-tdeck/docs/nomad.md`, and the `link.md` mentions in the µR src comments.
-
-## Explicitly out of scope
-
-`hw-tdeck/docs/component-plan.md` is a **broad multi-component** architecture
-document (rnsd, lora, auto, tcp, lxmf, IFAC, storage conventions, browser menus),
-not an rnsd doc. It was **not** deleted and carries durable design content for the
-other straddles. If it is ever retired it needs its own audit — do not fold it
-into the rns docs.
+- A broad, cross-cutting architecture document that spans several straddles is
+  **not** one straddle's doc — leave it where it is and don't fold it into a
+  straddle's two files. If it ever needs retiring, that's its own audit.
+- Settings/config defaults belong to the straddle that owns the key; other
+  straddles read it, they don't redefine or default it. Reflect that in the docs
+  (point at the owner rather than duplicating).
