@@ -479,7 +479,7 @@ Add `rnsh <dest_hash> [aspect]` to the CLI table in `rns/README.md` (§CLI,
 6. **`rnsh` client command** (Deliverable 5); full loop: `rnsh <dest>` → admin
    prompt over the mesh → interactive session → exit.
 
-Build/flash with `spangap build reticulous/reticulous --with reticulous/hw-tdeck
+Build/flash with `spangap build reticulous/reticulous --with spangap/hw-tdeck
 --with <rnshd>` (and never from a sub-straddle). Verify on-device via `spangap cli`,
 `spangap log`, `spangap flash`.
 

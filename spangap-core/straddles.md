@@ -405,7 +405,7 @@ Reticulum on spangap is the canonical example; the same shape applies to seccam,
   `reticulous/lxmf` (prefix: `lxmf`) — LXMF messaging: `esp-idf/` + `browser/` panels + `esp-idf/lcd/` slice. `requires: [reticulous/rns]`.
 
 - **Buildable board straddle** — partition layout, board HAL, plus the `requires:` line that names which protocol/transport straddles to include and which UI activators to turn on. **This is the straddle that actually produces a flashable device image.**
-  `reticulous/hw-tdeck` — `requires: [reticulous/rns, reticulous/lxmf, reticulous/iface-tcp, reticulous/iface-auto, reticulous/iface-espnow, reticulous/iface-lora, spangap/spangap-web, spangap/spangap-lcd]` gives a T-Deck with the full RNS + LXMF stack over all four transports plus both UI surfaces.
+  `spangap/hw-tdeck` — `requires: [reticulous/rns, reticulous/lxmf, reticulous/iface-tcp, reticulous/iface-auto, reticulous/iface-espnow, reticulous/iface-lora, spangap/spangap-web, spangap/spangap-lcd]` gives a T-Deck with the full RNS + LXMF stack over all four transports plus both UI surfaces.
 
 A board straddle picks whichever combination of protocol/transport straddles it wants and whichever UI activators apply; the resolver assembles them. A LoRa-only sensor board with no WiFi is simply a board straddle that requires `rns + iface-lora` and skips `spangap-net` entirely.
 
@@ -670,7 +670,7 @@ Paths on the left reflect the post-Phase-1 workspace (after the `spangap/` → `
 | reticulous on-device LCD UI per transport | each transport straddle's `esp-idf/lcd/` |
 | reticulous on-device LCD UI for LXMF | `reticulous/lxmf`'s `esp-idf/lcd/` |
 | reticulous on-device LCD UI for Nomad | `reticulous/nomad`'s `esp-idf/lcd/` |
-| `reticulous/main/{tdeck,gps,main}.*` + `partitions.csv` + `ota_pubkey.h` + `sdkconfig.defaults` + top-level `CMakeLists.txt` | `reticulous/hw-tdeck` (the buildable straddle that builds the T-Deck device image) |
+| `reticulous/main/{tdeck,gps,main}.*` + `partitions.csv` + `ota_pubkey.h` + `sdkconfig.defaults` + top-level `CMakeLists.txt` | `spangap/hw-tdeck` (the buildable straddle that builds the T-Deck device image) |
 | `reticulous/main/{maps}.*` + `scripts/maketiles.py` | `reticulous/maps` (feature straddle, no device image of its own — consumed by buildable straddles like `hw-tdeck`. Independent of the RNS family; `requires: [spangap/spangap-core, spangap/spangap-lcd]`. Reads GPS via ephemeral storage; GPS service abstraction deferred until a second consumer.) |
 | `seccam/*` | `seccam/seccam` (all halves in one repo; further decomposition into sub-protocols can come later if the codebase grows that way) |
 
@@ -717,7 +717,7 @@ Phase 2 (real platform split): `spangap-core` narrowed to its foundation (`its`,
     - `reticulous/maps` (`prefix: maps`) — offline RGB565 map viewer as an LCD launcher program. No RNS dep — published under the `reticulous/` org but consumable by any LCD buildable straddle. Reads the GPS fix via ephemeral storage keys, so no compile-time GPS dep — the GNSS chip lives in `hw-tdeck` until a GPS service abstraction earns its own straddle. `requires: [spangap/spangap-core, spangap/spangap-lcd]`. Doubles as the docs' "first non-RNS feature straddle" walkthrough.
 
     **Buildable straddle (builds the device image):**
-    - `reticulous/hw-tdeck` — owns the T-Deck Plus board HAL (`tdeck.cpp/h`), the GNSS receiver task (`gps.cpp/h` — board-specific until a GPS service abstraction earns its own straddle), partition layout, OTA pubkey, browser SPA shell, and `app_main` (which drives the explicit per-straddle `init()` sequence — see Phase 2 layering rework). `requires: [reticulous/rns, reticulous/iface-tcp, reticulous/iface-auto, reticulous/iface-espnow, reticulous/iface-lora, reticulous/lxmf, reticulous/nomad, reticulous/maps, spangap/spangap-core, spangap/spangap-net, spangap/spangap-web, spangap/spangap-lcd, spangap/wg, spangap/upnp, spangap/duckdns, spangap/acme, spangap/ota]`.
+    - `spangap/hw-tdeck` — owns the T-Deck Plus board HAL (`tdeck.cpp/h`), the GNSS receiver task (`gps.cpp/h` — board-specific until a GPS service abstraction earns its own straddle), partition layout, OTA pubkey, browser SPA shell, and `app_main` (which drives the explicit per-straddle `init()` sequence — see Phase 2 layering rework). `requires: [reticulous/rns, reticulous/iface-tcp, reticulous/iface-auto, reticulous/iface-espnow, reticulous/iface-lora, reticulous/lxmf, reticulous/nomad, reticulous/maps, spangap/spangap-core, spangap/spangap-net, spangap/spangap-web, spangap/spangap-lcd, spangap/wg, spangap/upnp, spangap/duckdns, spangap/acme, spangap/ota]`.
 11. **Convert `seccam` to its straddle shape** — `seccam/seccam` initially. Further decomposition into protocol/web/lcd parallels can wait until the codebase grows into it.
 
 ### Phase 4 — Public

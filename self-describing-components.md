@@ -391,7 +391,7 @@ disappears.
 4. **Hand-trigger construction**: `void mapsLcdRegister(void) { MapsApp::install(); }`
    (still `call: mapsLcdRegister` — generator untouched). `install()` constructs +
    registers; the platform's `onInit` walk then does the lcd hop + `appInit`.
-5. **Build + flash** (`reticulous/reticulous --with reticulous/hw-tdeck`),
+5. **Build + flash** (`reticulous/reticulous --with spangap/hw-tdeck`),
    confirm the launcher tile, settings pane, CLI verb, and live map all still
    work. (`spangap log` + `spangap cli "maps"`.)
 

@@ -226,7 +226,7 @@ and open http(s) links in a new tab (`target=_blank`); needs study of spangap-we
 Per build/log conventions (device CLI not reachable in-container; verify via `spangap log`; user drives
 on-device interaction):
 
-1. **Build:** `reticulous/reticulous --with reticulous/hw-tdeck --with spangap/browser` (from repo root,
+1. **Build:** `reticulous/reticulous --with spangap/hw-tdeck --with spangap/browser` (from repo root,
    not a sub-straddle). Then build `--without spangap-net` to confirm graceful degrade compiles.
 2. **Boot/log:** confirm `browserInit` runs and `browserNetInit` only appears with net staged — check
    `spangap log -f`.

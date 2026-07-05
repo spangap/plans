@@ -5,7 +5,7 @@ platform, the exact facilities each side exposes today, how they talk to the
 central facilities, and what is **generated** by the build vs **supplied** by a
 straddle.
 
-Scope of the snapshot: the `reticulous/reticulous --with reticulous/hw-tdeck
+Scope of the snapshot: the `reticulous/reticulous --with spangap/hw-tdeck
 --with spangap/viewer` build (the kitchen-sink T-Deck image). Verified against
 the staged source under `/straddles` on 2026-06-21.
 

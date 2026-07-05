@@ -6,7 +6,7 @@ seccam-compatible `[av_hdr][payload]` packets; anything peers send to the port i
 mixed together and played out the speaker (timestamps ignored). Also exposes a
 local function to play WAV files at the device sample rate.
 
-Target build for v1: `reticulous/reticulous --with reticulous/hw-tdeck` (LilyGo
+Target build for v1: `reticulous/reticulous --with spangap/hw-tdeck` (LilyGo
 T-Deck Plus: ES7210 mic + MAX98357A speaker). Written board-agnostic so other
 boards contribute only data + a tiny codec shim.
 
@@ -72,7 +72,7 @@ contributes only what is genuinely board-specific.
 │    • OPTIONAL: audioRegisterCodec(ops) for a non-I2S control plane       │
 └──────────────────────────────────▲───────────────────────────────────────┘
                                     │ when: spangap/audio
-┌──────────────── reticulous/hw-tdeck (board, prefix "tdeck") ─────────────┐
+┌──────────────── spangap/hw-tdeck (board, prefix "tdeck") ─────────────┐
 │  kconfig:  CONFIG_AUDIO_* pins + IN_MODE + rate default  (data only)      │
 │  esp-idf/conditional/spangap-audio/tdeck_audio.cpp:                       │
 │       ES7210 I2C bring-up → audioRegisterCodec(&es7210_ops)  (~50 lines)  │
@@ -464,7 +464,7 @@ init:
 
 ---
 
-## 14. `reticulous/hw-tdeck` additions
+## 14. `spangap/hw-tdeck` additions
 
 **(a) Pin/mode values** — append to the existing `kconfig:` block in
 `/straddles/hw-tdeck/straddle.yaml` (board straddle is non-buildable, so its
@@ -541,7 +541,7 @@ spangap/audio/
     wav.cpp / wav.h               # WAV parse + streamed playback into the mixer
   docs/audio.md
 
-reticulous/hw-tdeck/
+spangap/hw-tdeck/
   straddle.yaml                   # + audio kconfig block; + tdeckAudioInit when: spangap/audio
   esp-idf/include/tdeck.h         # (optional) BOARD_* audio pin constants for docs/cross-ref
   esp-idf/conditional/spangap-audio/
@@ -559,7 +559,7 @@ sibling straddle's repo name in `REQUIRES` (staging lint rejects it).
 
 Build (per the build conventions — never from a sub-straddle, no `--flash-size`):
 ```
-spangap build reticulous/reticulous --with reticulous/hw-tdeck --with spangap/audio
+spangap build reticulous/reticulous --with spangap/hw-tdeck --with spangap/audio
 spangap flash         # signals the host monitor
 ```
 Iterate via `spangap log -f` (not cat/tail) and `spangap cli`.

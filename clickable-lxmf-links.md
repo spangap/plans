@@ -109,7 +109,7 @@ the same tab — no firmware round-trip needed for the panel switch.
 - lxmf web: `browser/src/modules/lxmf.ts`
 
 ## Verification
-1. Build: `spangap build reticulous/reticulous --with reticulous/hw-tdeck` from the workspace root.
+1. Build: `spangap build reticulous/reticulous --with spangap/hw-tdeck` from the workspace root.
    Confirms both firmware (core + both -lcd slices + new lcdShowProgram) and the Vite SPA compile.
 2. Flash: `spangap flash`; watch `spangap log -f` for clean boot.
 3. **Web path**: open the nomad browser web UI, load a micron page containing an `lxmf@<hash>` token

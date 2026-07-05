@@ -300,7 +300,7 @@ contract); the Kconfig symbols are only the defaults for the `0` cases.
 4. **(Optional) Lift the 64 KB browser limit** and collapse the config dump to one message.
 
 Each step has explicit acceptance criteria in the contract below. Build with
-`spangap build reticulous/reticulous --with reticulous/hw-tdeck` from the workspace root and
+`spangap build reticulous/reticulous --with spangap/hw-tdeck` from the workspace root and
 verify on hardware via `spangap log -f` and the `its` status CLI (cli_cmd_sys.cpp:129).
 
 ## The discipline that matters most

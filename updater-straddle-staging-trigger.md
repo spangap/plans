@@ -90,7 +90,7 @@ CLI: `updater` (guarded) / `updater -f` (forced). Same path as the cmd keys, for
 ## Verification
 
 In-container: `spangap validate` (manifest + dep graph), then
-`spangap build reticulous/reticulous --with reticulous/hw-tdeck` (also `--with spangap/updater` until it's
+`spangap build reticulous/reticulous --with spangap/hw-tdeck` (also `--with spangap/updater` until it's
 in a default set) — confirm the straddle stages, links, and the CLI cmd registers.
 
 On-device (user-driven, per the device-CLI-not-reachable note): user flashes, then via `spangap cli`:
