@@ -5,6 +5,15 @@
 > It records the problem, the constraints we verified in the code, a candidate
 > architecture, and — most importantly — the open forks still to decide.
 > Circle back when it's time; do not start building from this as-is.
+>
+> **Drift warning (2026-07-07):** the verified constraints in §2 and the code
+> anchors in §11 predate two reworks — the ITS packet-link + storage-actor
+> changes (`storage:1` is now an `ITS_PACKET` link with 256 KB `maxMsg`; the
+> 15.5 KB patch cap and 8 KB inbound buffer are gone) and lxmf's per-peer
+> message layout (`s.lxmf.id.<n>.msgs.<peer>.<key>.<field>`, the seam
+> retention/eviction would hang on). Paths moved too
+> (`spangap-core/esp-idf/src/storage.cpp`, `lxmf/esp-idf/src/lxmf.cpp`).
+> Re-verify everything here before building.
 
 ## 1. Why this exists (the problem)
 

@@ -4,6 +4,17 @@ Status: planning, not implemented. Captures a design discussion around how third
 
 This plan extends [`Kconfig.md`](Kconfig.md). That document fixes how spangap-core's *own* modules toggle and initialize (per-consumer Kconfig + single `spangapInit()`). This document is the *next layer*: how external feature/app packages compose with spangap-core, how they're identified, fetched, staged, and brought up.
 
+> **Note (2026-07-07):** `Kconfig.md` has been deleted — superseded by the
+> straddle decomposition itself (optional modules became straddles; gating is
+> the generated `CONFIG_STRADDLE_<REPO>` symbols; init is the generated
+> `spangapInitStraddles()` dispatcher). For current mechanics trust
+> `spangap/INTERNALS.md`, not this file's spec text — reality diverged here
+> too (init hooks live in `straddle.yaml` `init:`; the CLI is a shell launcher
+> installed via `curl | sh`, not an npm tool; `ota` was superseded by
+> `updater`). Still open: seccam conversion (Phase 3.11) and Phase 4 (npm /
+> components.espressif.com name claims — the defensive-scope design below is
+> the only record of it).
+
 ## Note to the agent executing this plan
 
 **All work lands on the `straddles` branch, not `main`.** The plan
