@@ -115,3 +115,46 @@ These surfaced repeatedly across the summaries and are candidate reform items:
 - **Stale-doc debt is already self-declared** in the build-system README (`s/` paths, aspirational layout boxes, obsolete `CLAUDE.md` files, hand-written `app_main()` sequences). This is the primary rewrite backlog.
 - **INTERNALS.md / docs/ split** is the emerging pattern (operator guide in README, deep detail in INTERNALS.md or `docs/`). Not yet uniform across straddles.
 - **Archived `README-old.old.md` copies** remain in four locations and should be retired once the reform lands.
+
+## Salvage: material for the org/landing README
+
+(Carried over from the retired readme-rewrite plan — reusable copy for
+whichever README ends up narrating the platform, e.g. the org profile.)
+
+Structure worth reusing: state the problems *without* solutions first, then
+have each component section point back at the problem it kills. The six
+problems, as pain statements:
+
+- **P1 — Wiring tasks together takes over the codebase.** Every concern is its
+  own FreeRTOS task; connecting them is bespoke — a queue here, a task
+  notification there, a poll loop somewhere else — each with its own timeout,
+  backpressure rule, and race to get wrong. The glue outweighs the feature and
+  most of it is busy-waiting.
+- **P2 — Some tasks aren't allowed to touch the filesystem.** ~512 KB internal
+  DRAM vs 8 MB PSRAM, not interchangeable; any SPI-flash op disables the PSRAM
+  cache, so a PSRAM-stack task that reads a LittleFS file crashes. DMA/WiFi/
+  lwIP need internal DRAM specifically. Normally the app author tracks every
+  allocation's memory class and every task's stack placement by hand.
+- **P3 — The device and the browser drift out of sync.** Settings sprawl into
+  bespoke REST endpoints; firmware and UI disagree; "add one setting" means
+  touching both sides plus a save path, plus the private-vs-public split.
+- **P4 — The browser app gets rebuilt from scratch every time.** Settings UI
+  bound to live config, log viewer, CLI console, live media session, auth
+  flow, a menu to hang panels on — re-implemented per project.
+- **P5 — A device behind NAT is unreachable and has no real TLS.** Punching
+  out, getting a name, and getting a publicly trusted cert is its own
+  sub-project; over many short-lived browser connections it's worse.
+- **P6 — You still have to operate the thing after it ships.** Seeing what
+  it's doing (and which task did it), poking it live, scheduling maintenance
+  that survives deep sleep, updating without bricking — each normally
+  hand-rolled, each a place to get security wrong.
+
+Component mapping: ITS → P1 (and the substrate the rest ride on); fs workers →
+P2; storage tree → P3; spangap-browser → P4; remote access + WebRTC → P5
+(P3/P6 ride the same path); log/CLI/cron/updater → P6.
+
+Forwarding payoff phrasing worth keeping verbatim: a live connection is handed
+from one server task to another with already-consumed protocol bytes injected
+back, so the new owner re-parses a fresh-looking request and **the middle task
+does zero copying — no proxy buffer, no pump loop**; after handoff `web` is
+out of the data path.
