@@ -227,6 +227,48 @@ not data. Acceptable; the 5 s timeout keeps its one remaining user.
   patch echo both directions, NOW_AND_ON_CHANGE consumers (lcd status bar).
 - Soak: notify-drop and deque-drop counters at zero over a day of normal use.
 
+## Hardware result — first attempt, REVERTED (2026-07-13)
+
+Phases 0–2 were implemented and landed **together** (mistake: phase 0 was
+supposed to land alone first for a baseline) and flashed to the T-Deck. Result:
+a sustained storm of `storage: commit latency` warns, **0.5–1.3 s on every
+commit**, across every writer — `auto`, `gps`, `espnow`, `lora`, `tcp`, `rnsd`,
+and even `esp_timer`. Reverted (spangap-core revert of the swap; reticulous-builds
+zips reverted to the prior firmware). The commit-in-caller branch survives in
+git history for a second attempt.
+
+What the numbers say:
+- **Not the F2 snapshot holds.** Zero `cfgHoldReport` (`CFG_LOCK hold …`) warns
+  fired — no single holder exceeded 50 ms. So the save/dump/re-home
+  `cJSON_Duplicate`s were *not* the problem this run.
+- **It is a mutex herd (F5), under-weighted in this plan.** Many short holds ×
+  a high write rate × FreeRTOS same-priority unfairness = a given low-priority
+  writer is repeatedly jumped and accumulates ~1 s of wait. Moving write
+  serialization off the actor's fair ITS queue onto `CFG_LOCK` is what exposed
+  this: the old design let exactly one task (the actor) take the write lock, so
+  there was no herd; commit-in-caller has ~10 tasks contending. Per-hold cost is
+  ms-class (not the µs the Target-shape assumed) because `navigatePath` is
+  O(siblings-per-level) on the bloated `s.lxmf.…msgs` tree, and it runs in both
+  the commit dedup and `dcAccumulateChange`.
+- **No baseline.** Because phase 0 didn't land alone first, there is no
+  before-number — we cannot say how much of the ~1 s is a true regression vs.
+  dispatch latency that already existed and the new probe merely made visible
+  (the old path had no per-write timing, only the 5 s ITS timeout warn).
+
+Before a second attempt:
+1. Land **phase 0 only**, flash, capture the T-Deck baseline (commit/dispatch
+   latency distribution under the same LXMF-backchannel + iface-stat load). Only
+   then is the swap judged against real numbers.
+2. Cut the write rate at the source: bracket lxmf's per-field message-status
+   writes (`stage`/`last_error`/`method`/`ts`/… are landing as separate commits
+   in the send path — see lxmf.cpp send/proof paths) into one
+   `storageBegin`/`storageEnd`. Fewer commits ⇒ fewer lock acquisitions ⇒ less
+   herd, and it helps the *current* actor design too.
+3. Only if 1–2 leave a real case for the swap, redo it — and treat F5, not F2,
+   as the risk to design against (mutex fairness / acquisition frequency, e.g.
+   a dedicated lightweight handoff lock so the actor's drain never contends on
+   `CFG_LOCK`, and keeping `dcAccumulateChange` off the per-change hot path).
+
 ## Out of scope (tracked in storage-needs-work.md)
 
 Bulk/config store split (N1), cJSON replacement (N2), demand paging +
