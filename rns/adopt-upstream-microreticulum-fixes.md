@@ -134,7 +134,7 @@ modified upstream file carries an in-file `Spangap fork:` notice, and
 
 ## Verification
 
-- `spangap build reticulous/reticulous --with spangap/hw-tdeck` must
+- `spangap build reticulous/reticulous --with spangap/hw-lilygo-tdeck` must
   stay green.
 - Item 1: establish a link to a Python RNS destination ≥2 hops away
   (Python transport node in between, as in the phase-f interop setup);
