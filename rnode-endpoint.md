@@ -1,5 +1,19 @@
 # RNode endpoint in iface-lora (serial + TCP) and a core serial-handler mechanism
 
+## Status — implemented 2026-08-01
+
+All of A–I landed. The as-built description is authoritative and lives in
+**`iface-lora/INTERNALS.md` §17** (settings and both transports, the one-session
+two-door model, the handshake and why the endpoint claims to be an AVR,
+configuration echo and the validation window, the three-way bridge, the frames
+that must never be sent, and the shared channel) and in
+**`spangap-core/docs/cli-internals.md` §3** for the serial-port handler registry
+core gained (`serialPortClaim` / `serialPortRelease`, `sys.usb.serial_ports`).
+If anything below contradicts those, they are right and this file is stale.
+
+Read this file for the *why* — the Decisions section at the end records the
+trade-offs taken, including the ones that reverse `adaptive-power.md` §9.
+
 ## Context
 
 iface-lora currently has two endpoints: the radio and rnsd (an ITS connection to
