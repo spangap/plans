@@ -298,10 +298,10 @@ transmissions may follow without a fresh CCA up to that 4 s **[verify — the
 exact conditions, in particular the maximum permitted gap between frames and
 whether both ends may rely on it]**.
 
-This is load-bearing for
-[`iface-lora/proper-air-protocol.md`](iface-lora/proper-air-protocol.md): that
-design's burst round is a manifest, a back-to-back train and a bitmap ack,
-explicitly with **no carrier sense from the manifest onwards**, sized at ~1.2 s.
+This is load-bearing for [`SUPE.md`](SUPE.md): its detour is an offer, a
+readiness frame, a manifest and a back-to-back train, explicitly with **no carrier
+sense once the pair is off the hailing channel**, sized at up to one second of
+train.
 That structure is legal under PSA only as a dialogue, and both directions
 together must fit inside 4 s. Reading this clause precisely is a prerequisite
 for building the burst channel, not a detail to settle afterwards — if the
@@ -798,10 +798,9 @@ no scan state, because nothing reads them.
 
 ### 6.4 Task ownership
 
-> The build order, the `s.lora.<n>.afa` gate, regime 0 and the demonstrator UI
-> are in [`iface-lora/afa-demonstrator.md`](iface-lora/afa-demonstrator.md).
-> Where that file gives a concrete size or cadence it supersedes the sketch
-> here.
+> Regime 0, the regime tables and the airtime ring are in
+> [`SUPE.md`](SUPE.md) §14. Where that file gives a concrete size or cadence it
+> supersedes the sketch here.
 
 Today one FreeRTOS task services every radio and also carries everything built
 on top of them — the neighbour table with its inline Ed25519 announce

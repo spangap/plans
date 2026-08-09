@@ -423,8 +423,8 @@ downlink-calibration table for transit neighbours.
 
 Link margin is SNR headroom to the SF sensitivity floor. Cutting power trades
 directly against SF/coding gain *and* worsens hidden-node loss. So power and rate
-are one decision, not two — `iface-lora/proper-air-protocol.md` §4's per-link
-measured-parameter negotiation is the natural home for the *joint* optimum.
+are one decision, not two — `SUPE.md` §14.3's step ladder, chosen from a measured
+path loss, is the natural home for the *joint* optimum.
 Power-only adaptation on the fixed common config is the earlier, simpler slice;
 treat it as a floor the later rate layer subsumes.
 

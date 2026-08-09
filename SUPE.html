@@ -1,0 +1,1890 @@
+<title>SUPE &#8212; Spectrum Utilization and Performance Enhancements</title>
+
+<style>
+
+:root{
+  --ink:#101820;
+  --paper:#f5f7f8;
+  --surface:#ffffff;
+  --muted:#5a6672;
+  --rule:#dbe1e6;
+  --rule-soft:#e9eef1;
+  --signal:#0d6f78;
+  --signal-soft:#e2f0f1;
+  --band:#8a5312;
+  --band-soft:#f6ecdf;
+  --shadow:0 1px 2px rgba(16,24,32,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --ink:#e3e9ee;
+    --paper:#0b1014;
+    --surface:#121a20;
+    --muted:#8d9aa6;
+    --rule:#22303a;
+    --rule-soft:#1a252d;
+    --signal:#57c9cb;
+    --signal-soft:#102b2e;
+    --band:#dda05a;
+    --band-soft:#2a2015;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e3e9ee;
+  --paper:#0b1014;
+  --surface:#121a20;
+  --muted:#8d9aa6;
+  --rule:#22303a;
+  --rule-soft:#1a252d;
+  --signal:#57c9cb;
+  --signal-soft:#102b2e;
+  --band:#dda05a;
+  --band-soft:#2a2015;
+  --shadow:none;
+}
+:root[data-theme="light"]{
+  --ink:#101820;
+  --paper:#f5f7f8;
+  --surface:#ffffff;
+  --muted:#5a6672;
+  --rule:#dbe1e6;
+  --rule-soft:#e9eef1;
+  --signal:#0d6f78;
+  --signal-soft:#e2f0f1;
+  --band:#8a5312;
+  --band-soft:#f6ecdf;
+  --shadow:0 1px 2px rgba(16,24,32,.05);
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:Charter,"Bitstream Charter","Iowan Old Style","Source Serif Pro",Georgia,serif;
+  font-size:17px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+
+.mono,code,kbd,th,.eyebrow,.pill,.lane,figcaption b{
+  font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+
+/* ---------- shell ---------- */
+.shell{
+  max-width:1180px;
+  margin:0 auto;
+  padding:0 24px 96px;
+  display:grid;
+  grid-template-columns:232px minmax(0,1fr);
+  gap:0 56px;
+  align-items:start;
+}
+
+/* ---------- masthead ---------- */
+.masthead{
+  grid-column:1/-1;
+  padding:64px 0 40px;
+  border-bottom:1px solid var(--rule);
+  margin-bottom:44px;
+}
+.eyebrow{
+  font-size:11.5px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin:0 0 18px;
+}
+h1{
+  font-size:clamp(2rem,4.4vw,3rem);
+  line-height:1.1;
+  letter-spacing:-.018em;
+  font-weight:600;
+  margin:0 0 6px;
+  text-wrap:balance;
+}
+.expansion{
+  font-size:1.02rem;
+  color:var(--muted);
+  margin:0 0 26px;
+  font-style:italic;
+}
+.standfirst{
+  max-width:64ch;
+  font-size:1.09rem;
+  margin:0 0 22px;
+}
+.statusrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.pill{
+  font-size:11.5px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  padding:4px 10px;
+  border:1px solid var(--rule);
+  border-radius:2px;
+  color:var(--muted);
+  background:var(--surface);
+}
+.pill.hot{color:var(--signal);border-color:var(--signal);background:var(--signal-soft)}
+
+/* ---------- nav ---------- */
+nav{
+  position:sticky;
+  top:24px;
+  font-size:13.5px;
+  line-height:1.45;
+  padding-bottom:24px;
+}
+nav .eyebrow{margin-bottom:12px}
+nav ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+nav a{
+  display:grid;
+  grid-template-columns:26px 1fr;
+  gap:6px;
+  color:var(--muted);
+  text-decoration:none;
+  padding:3px 6px 3px 0;
+  border-left:2px solid transparent;
+  padding-left:10px;
+}
+nav a:hover{color:var(--ink);border-left-color:var(--signal)}
+nav a:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+nav a .n{
+  font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:11.5px;
+  color:var(--signal);
+  padding-top:1px;
+}
+nav .sub a{padding-left:34px;font-size:12.5px}
+
+/* ---------- content ---------- */
+main{min-width:0;max-width:none}
+section{margin:0 0 52px;scroll-margin-top:24px}
+section>*{max-width:68ch}
+section>figure,section>.tablewrap,section>.flow{max-width:none}
+
+h2{
+  font-size:1.5rem;
+  font-weight:600;
+  letter-spacing:-.012em;
+  line-height:1.25;
+  margin:0 0 4px;
+  text-wrap:balance;
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:14px;
+  align-items:baseline;
+}
+h2 .n{
+  font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.72em;
+  font-weight:400;
+  color:var(--signal);
+}
+h3{
+  font-size:1.08rem;
+  font-weight:600;
+  letter-spacing:-.005em;
+  margin:34px 0 2px;
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:12px;
+  align-items:baseline;
+}
+h3 .n{
+  font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.78em;
+  font-weight:400;
+  color:var(--muted);
+}
+.rule{height:1px;background:var(--rule);margin:0 0 20px;max-width:none}
+
+p{margin:0 0 16px}
+strong{font-weight:600}
+em{font-style:italic}
+
+ul{margin:0 0 18px;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
+ul li{padding-left:18px;position:relative}
+ul li::before{
+  content:"";
+  position:absolute;
+  left:0;top:.72em;
+  width:6px;height:1px;
+  background:var(--signal);
+}
+
+code{
+  font-size:.855em;
+  background:var(--rule-soft);
+  padding:.1em .34em;
+  border-radius:2px;
+  white-space:nowrap;
+}
+
+/* ---------- lede ---------- */
+.lede{
+  background:var(--surface);
+  border:1px solid var(--rule);
+  border-left:2px solid var(--signal);
+  padding:22px 26px 8px;
+  margin:0 0 40px;
+  box-shadow:var(--shadow);
+  max-width:70ch;
+}
+.lede p{font-size:1rem}
+.lede p:last-child{margin-bottom:14px}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto;margin:0 0 22px;-webkit-overflow-scrolling:touch}
+table{
+  border-collapse:collapse;
+  width:100%;
+  min-width:520px;
+  font-size:14.5px;
+  line-height:1.5;
+  font-variant-numeric:tabular-nums;
+}
+caption{
+  text-align:left;
+  font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:11.5px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--muted);
+  padding:0 0 8px;
+}
+th{
+  text-align:left;
+  font-weight:400;
+  font-size:11.5px;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+  color:var(--muted);
+  padding:0 14px 7px 0;
+  border-bottom:1px solid var(--rule);
+  vertical-align:bottom;
+  white-space:nowrap;
+}
+td{
+  padding:8px 14px 8px 0;
+  border-bottom:1px solid var(--rule-soft);
+  vertical-align:top;
+}
+tbody tr:last-child td{border-bottom:1px solid var(--rule)}
+td:first-child,th:first-child{padding-left:0}
+.num{white-space:nowrap;font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;font-size:13px}
+.framename{
+  font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:.02em;
+}
+tr.grouphead td{
+  border-bottom:none;
+  padding-top:16px;
+  padding-bottom:2px;
+}
+tr.total td{
+  border-bottom:1px solid var(--rule);
+  color:var(--muted);
+  font-size:13px;
+}
+tr.total td.num{color:var(--ink);font-weight:600}
+
+/* ---------- flow block ---------- */
+.flow{
+  overflow-x:auto;
+  background:var(--surface);
+  border:1px solid var(--rule);
+  padding:20px 22px;
+  margin:0 0 26px;
+  box-shadow:var(--shadow);
+}
+.flow pre{
+  margin:0;
+  font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:12.5px;
+  line-height:1.62;
+  white-space:pre;
+}
+.flow .lane{color:var(--signal);font-weight:600}
+.flow .cm{color:var(--muted)}
+
+/* ---------- figures ---------- */
+figure{margin:0 0 28px}
+figure svg{display:block;width:100%;height:auto;max-width:100%}
+figcaption{
+  font-size:13.5px;
+  color:var(--muted);
+  margin-top:12px;
+  max-width:64ch;
+  line-height:1.5;
+}
+figcaption b{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink);font-weight:400;display:block;margin-bottom:4px}
+
+/* ---------- callout ---------- */
+.reg{
+  border-left:2px solid var(--band);
+  background:var(--band-soft);
+  padding:14px 18px 2px;
+  margin:0 0 22px;
+  max-width:68ch;
+}
+.reg p{font-size:.97rem}
+
+.formula{
+  font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:14px;
+  background:var(--surface);
+  border:1px solid var(--rule);
+  padding:14px 18px;
+  margin:0 0 20px;
+  overflow-x:auto;
+  max-width:68ch;
+}
+
+footer{
+  grid-column:1/-1;
+  border-top:1px solid var(--rule);
+  margin-top:20px;
+  padding-top:22px;
+  font-size:13.5px;
+  color:var(--muted);
+  max-width:68ch;
+}
+
+@media (max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr);gap:0}
+  nav{position:static;border-bottom:1px solid var(--rule);margin-bottom:38px}
+  nav ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0 18px}
+  section>*{max-width:none}
+  .masthead{padding-top:44px}
+}
+</style>
+
+<div class="shell">
+
+<header class="masthead">
+  <p class="eyebrow">Reticulum over LoRa &#183; link-layer protocol specification</p>
+  <h1>SUPE</h1>
+  <p class="expansion">Spectrum Utilization and Performance Enhancements</p>
+  <p class="standfirst">A link-layer protocol that moves unicast traffic off the shared LoRa channel onto short private high-rate detours, in both directions, entirely inside the modem &#8212; with the Reticulum daemon unmodified and unaware.</p>
+  <div class="statusrow">
+    <span class="pill hot">Specified &#183; not implemented</span>
+    <span class="pill">All regimes at version 0</span>
+    <span class="pill">18 sections</span>
+  </div>
+</header>
+
+<nav aria-label="Contents">
+  <p class="eyebrow">Contents</p>
+  <ol>
+    <li><a href="#s0"><span class="n">0</span><span>The flow</span></a></li>
+    <li class="sub"><a href="#s01"><span class="n">0.1</span><span>Every frame and its fields</span></a></li>
+    <li><a href="#s1"><span class="n">1</span><span>The idea</span></a></li>
+    <li><a href="#s2"><span class="n">2</span><span>What this rests on</span></a></li>
+    <li><a href="#s3"><span class="n">3</span><span>Frames, regimes and versions</span></a></li>
+    <li><a href="#s4"><span class="n">4</span><span>Configuration</span></a></li>
+    <li><a href="#s5"><span class="n">5</span><span>Addresses that mean us</span></a></li>
+    <li class="sub"><a href="#s51"><span class="n">5.1</span><span>Addresses that mean someone else</span></a></li>
+    <li><a href="#s6"><span class="n">6</span><span>Messages on the main channel</span></a></li>
+    <li><a href="#s7"><span class="n">7</span><span>Announcing</span></a></li>
+    <li><a href="#s8"><span class="n">8</span><span>Messages on the unicast channel</span></a></li>
+    <li><a href="#s9"><span class="n">9</span><span>Reticulum announces are not ours to touch</span></a></li>
+    <li><a href="#s10"><span class="n">10</span><span>What is learned, and where it is filed</span></a></li>
+    <li><a href="#s11"><span class="n">11</span><span>Failing well</span></a></li>
+    <li><a href="#s12"><span class="n">12</span><span>Staying invisible to the daemon</span></a></li>
+    <li><a href="#s13"><span class="n">13</span><span>Where it does not apply</span></a></li>
+    <li><a href="#s14"><span class="n">14</span><span>Regimes</span></a></li>
+    <li class="sub"><a href="#s141"><span class="n">14.1</span><span>Regime 0 — Single Channel</span></a></li>
+    <li class="sub"><a href="#s142"><span class="n">14.2</span><span>Regime 1 — ETSI EN 300 220 (863–870 MHz)</span></a></li>
+    <li class="sub"><a href="#s143"><span class="n">14.3</span><span>The ladder, and how a budget resolves</span></a></li>
+    <li class="sub"><a href="#s144"><span class="n">14.4</span><span>Airtime accounting</span></a></li>
+    <li class="sub"><a href="#s145"><span class="n">14.5</span><span>Sync words</span></a></li>
+    <li class="sub"><a href="#s146"><span class="n">14.6</span><span>Radio families</span></a></li>
+    <li class="sub"><a href="#s147"><span class="n">14.7</span><span>Turnaround, retune and deadlines</span></a></li>
+    <li><a href="#s15"><span class="n">15</span><span>Adaptive transmit power</span></a></li>
+    <li><a href="#s16"><span class="n">16</span><span>Open items</span></a></li>
+    <li><a href="#s17"><span class="n">17</span><span>Deferred</span></a></li>
+    <li><a href="#s18"><span class="n">18</span><span>What this protocol assumes of an implementation</span></a></li>
+  </ol>
+</nav>
+
+<main>
+
+<div class="lede">
+<p>Status: <strong>specified, not implemented.</strong> A detour has been observed completing end to end on real hardware; everything past that is design.</p>
+<p>The retune turnaround of §14.7 and the SF5/SF6 sync-word behaviour of §16 are still measurements rather than answers, and every deadline here depends on the first. <code>simulation.md</code> is where both are meant to be settled.</p>
+<p><code>sender_ident</code> is specified but deferred (§4, §17).</p>
+<p>SUPE moves unicast traffic off the shared LoRa channel onto short private high-rate detours, entirely inside the modem, with the Reticulum daemon unmodified and unaware. It specifies how two nodes that know nothing about each other agree parameters and leave, using only what is visible in Reticulum packet headers.</p>
+<p>Everything normative is here: the frames in §0.1, the regimes with their channels, ladder, sync words, timings and limits in §14, and adaptive power in §15. Companion documents carry derivation rather than specification — <code>afa.md</code> for how the channel plan and the ladder's margins follow from the regulation, and <code>psa.md</code> for access to the hailing channel, which SUPE does not own.</p>
+<p>A node speaking it is a SUPE RNode.</p>
+</div>
+
+<section id="s0">
+<h2><span class="n">§0</span><span>The flow</span></h2>
+<div class="rule"></div>
+
+<figure>
+<svg viewBox="0 0 900 300" role="img" aria-label="A detour is arranged by two frames on the shared hailing channel: the requester's seven-byte START and the peer's ten-byte GRANT, which names the channel and the link budget. Both nodes then retune to that private channel, where the requester sends a MANIFEST and its packet train, the peer answers with its own MANIFEST and train, and both return to the hailing channel.">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,1 L9,5 L0,9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+
+  <g stroke="currentColor" stroke-opacity=".22" stroke-width="1">
+    <line x1="150" y1="78" x2="884" y2="78"/>
+    <line x1="150" y1="200" x2="884" y2="200"/>
+  </g>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11.5" fill="currentColor" text-anchor="end">
+    <text x="138" y="75">hailing channel</text>
+    <text x="138" y="90" fill-opacity=".55">shared, sensed</text>
+    <text x="138" y="197">unicast channel</text>
+    <text x="138" y="212" fill-opacity=".55">named by the GRANT</text>
+  </g>
+
+  <g>
+    <rect x="168" y="66" width="58" height="24" rx="2" fill="var(--signal)"/>
+    <text x="197" y="82" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" fill="var(--paper)" text-anchor="middle">START</text>
+    <text x="197" y="52" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="currentColor" text-anchor="middle" fill-opacity=".65">A &#8594; all &#183; 7 B</text>
+    <text x="197" y="38" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="currentColor" text-anchor="middle" fill-opacity=".5">sensed</text>
+  </g>
+
+  <g>
+    <rect x="234" y="66" width="62" height="24" rx="2" fill="var(--signal)"/>
+    <text x="265" y="82" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" fill="var(--paper)" text-anchor="middle">GRANT</text>
+    <text x="265" y="52" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="currentColor" text-anchor="middle" fill-opacity=".65">B &#8594; all &#183; 10 B</text>
+    <text x="265" y="38" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="var(--signal)" text-anchor="middle">peer chooses</text>
+  </g>
+
+  <path d="M304 92 L348 188" stroke="currentColor" stroke-width="1.2" stroke-dasharray="3 3" fill="none" marker-end="url(#ar)"/>
+  <text x="310" y="146" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="currentColor" fill-opacity=".6">retune</text>
+
+  <g>
+    <rect x="356" y="188" width="72" height="24" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/>
+    <text x="392" y="204" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="currentColor" text-anchor="middle">MANIFEST</text>
+  </g>
+  <g fill="currentColor" fill-opacity=".38">
+    <rect x="436" y="190" width="12" height="20"/><rect x="454" y="190" width="12" height="20"/>
+    <rect x="472" y="190" width="12" height="20"/><rect x="490" y="190" width="12" height="20"/>
+    <rect x="508" y="190" width="12" height="20"/><rect x="526" y="190" width="12" height="20"/>
+  </g>
+  <text x="452" y="234" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="currentColor" text-anchor="middle" fill-opacity=".65">A &#8594; B &#183; train</text>
+
+  <g>
+    <rect x="556" y="188" width="72" height="24" rx="2" fill="none" stroke="var(--signal)" stroke-width="1.5"/>
+    <text x="592" y="204" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="var(--signal)" text-anchor="middle">MANIFEST</text>
+  </g>
+  <g fill="var(--signal)" fill-opacity=".45">
+    <rect x="636" y="190" width="12" height="20"/><rect x="654" y="190" width="12" height="20"/>
+    <rect x="672" y="190" width="12" height="20"/><rect x="690" y="190" width="12" height="20"/>
+  </g>
+  <text x="654" y="234" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="var(--signal)" text-anchor="middle">B &#8594; A &#183; the reverse direction</text>
+  <text x="654" y="248" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="currentColor" text-anchor="middle" fill-opacity=".55">count 0 ends it</text>
+
+  <path d="M712 188 L756 92" stroke="currentColor" stroke-width="1.2" stroke-dasharray="3 3" fill="none" marker-end="url(#ar)"/>
+  <text x="720" y="146" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="currentColor" fill-opacity=".6">return</text>
+
+  <line x1="764" y1="78" x2="884" y2="78" stroke="var(--signal)" stroke-width="2"/>
+  <text x="824" y="60" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="currentColor" text-anchor="middle" fill-opacity=".65">camped again</text>
+
+  <path d="M168 108 L168 118 L756 118 L756 108" stroke="currentColor" stroke-opacity=".35" fill="none" stroke-width="1"/>
+  <text x="462" y="136" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10.5" fill="currentColor" text-anchor="middle" fill-opacity=".6">each side states its own bound &#183; neighbours hold traffic for the tag for the longer of the two</text>
+</svg>
+<figcaption><b>The detour</b>Two frames on the shared channel and the pair is gone. The requester asks; the peer &#8212; which has been listening, and knows its own airtime and which channels are quiet &#8212; names the channel and the link budget, and its answer doubles as proof it is there. Everything after that is on a channel that bothers nobody else, in both directions.</figcaption>
+</figure>
+<div class="flow"><pre><span class="lane">main channel</span> (whatever this network hails on — the baseline for everything
+              below; everyone camps here, carrier-sensed)
+
+  telling the neighbourhood who we are — once per announce interval
+    A→*   SUPE_ANNOUNCE2 {type, regime/version, capabilities,
+                          power this went out at,
+                          4-byte identity hash × count}           5+4·count B
+          <span class="cm">└─ hashes last, so the count needs no byte of its own</span>
+          <span class="cm">└─ every regime announces here and identically</span>
+
+  arranging a detour — two frames, one carrier-sense between them
+    A→*   SUPE_START  {type, regime/version, tag,
+                       A's family and ceiling, A's load}                  7 B
+          <span class="cm">└─ "I have traffic for whoever holds this address, this much of it,</span>
+              <span class="cm">and this is what my radio can do"</span>
+          <span class="cm">└─ load is in bytes, not milliseconds: A does not know the</span>
+             <span class="cm">modulation yet, and B is about to choose it</span>
+          <span class="cm">└─ carrier-sensed like any other transmission</span>
+
+    B→*   SUPE_GRANT  {type, regime/version, channel/budget, duration,
+                       power of this frame, how the START was heard,
+                       3 bytes of the START's hash}                      10 B
+          <span class="cm">└─ "meet me on that channel at that budget, and this is how long</span>
+              <span class="cm">the whole thing takes"</span>
+          <span class="cm">└─ a turnaround response inside the transaction: no carrier sense,</span>
+             <span class="cm">no contention wait</span>
+          <span class="cm">└─ everyone else: hold traffic addressed to tag for that duration</span>
+          <span class="cm">└─ no GRANT by the deadline → nobody answered. Two more tries with</span>
+             <span class="cm">more power and a lower ceiling, then the peer is absent and its</span>
+             <span class="cm">traffic is dropped for a minute (§11)</span>
+
+        both retune, observing the retune gap of §14.7
+
+<span class="lane">unicast channel</span> (the channel SUPE_GRANT named; in regime 0, the hailing
+                 frequency at a faster modulation)
+
+    A→B   MANIFEST  {type, power of this train, how the GRANT was heard,
+                     capabilities, count, length, the START hash}        11 B
+    A→B   the packets themselves × count — ordinary Reticulum frames in the
+          interface's ordinary framing, not SUPE frames at all
+          <span class="cm">└─ no MANIFEST by the deadline → B returns to the main channel</span>
+
+    B→A   MANIFEST  {…, how A's train was heard, its own count and length}
+    B→A   the packets themselves × count
+          <span class="cm">└─ count 0 with length 0 → nothing to send; both go home</span>
+          <span class="cm">└─ count 0 with length &gt; 0 → nothing yet; A waits that long for a</span>
+             <span class="cm">further MANIFEST, bounded by the transaction ceiling</span>
+          <span class="cm">└─ no MANIFEST by the deadline → A returns to the main channel</span>
+
+        both return to the main channel</pre></div>
+<p>One detour carries traffic in <strong>both</strong> directions, ends by arithmetic, and is not acknowledged.</p>
+<p><strong>Why the answer is on the main channel.</strong> Three things follow from putting it there rather than letting the requester decide and leave.</p>
+<p>The <strong>peer is the better chooser</strong>: it has been camped on the main channel and knows which channels it has recently heard quiet, its own remaining airtime and its own reuse gaps — none of which the requester can know, being about to transmit rather than listen. A <strong>duration is only meaningful once the modulation is fixed</strong>, and the peer fixes it — which is why the requester states how many <em>bytes</em> it has and the peer states how many milliseconds that will take. And the answer arriving <em>before</em> either side retunes means <strong>the reverse direction has somewhere to go</strong>: one detour carries a round trip, which is what traffic that stalls for a delivery proof — most interactive traffic — actually needs.</p>
+<p>It costs one extra frame on the shared channel, and it saves one on the detour channel plus a turnaround, because an answer heard on the main channel is already proof the peer is there. §6 carries the arithmetic.</p>
+
+<h3 id="s01"><span class="n">§0.1</span><span>Every frame and its fields</span></h3>
+<p>Field order, widths and type values below are normative.</p>
+<p>Every SUPE frame opens with its type byte, and that byte plus the regime and version nibbles behind it determine the frame's permitted length exactly:</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Type</th>
+<th>Frame</th>
+<th>Sent on</th>
+<th>Length</th>
+</tr></thead><tbody>
+<tr>
+<td><code>0xC0</code>, <code>0xC1</code></td>
+<td><strong>never assigned</strong></td>
+<td></td>
+<td>see below</td>
+</tr>
+<tr>
+<td class="num"><code>0xC2</code></td>
+<td>SUPE_START</td>
+<td>main channel</td>
+<td>7, or 10 with <code>sender_ident</code></td>
+</tr>
+<tr>
+<td class="num"><code>0xC3</code></td>
+<td><strong>reserved, never reassigned</strong></td>
+<td></td>
+<td>discard</td>
+</tr>
+<tr>
+<td class="num"><code>0xC4</code></td>
+<td>SUPE_ANNOUNCE2</td>
+<td>main channel</td>
+<td>5 + 4·count</td>
+</tr>
+<tr>
+<td class="num"><code>0xC5</code></td>
+<td>SUPE_GRANT</td>
+<td>main channel</td>
+<td class="num">10</td>
+</tr>
+<tr>
+<td><code>0xC6</code>, <code>0xC7</code></td>
+<td>reserved</td>
+<td></td>
+<td>discard</td>
+</tr>
+<tr>
+<td class="num"><code>0xC8</code></td>
+<td><strong>reserved, never reassigned</strong></td>
+<td></td>
+<td>discard</td>
+</tr>
+<tr>
+<td class="num"><code>0xC9</code></td>
+<td>MANIFEST</td>
+<td>unicast channel</td>
+<td class="num">11</td>
+</tr>
+<tr>
+<td><code>0xCA</code>–<code>0xCF</code></td>
+<td>reserved</td>
+<td></td>
+<td>discard</td>
+</tr>
+<tr>
+<td><code>0xD0</code>, <code>0xD1</code></td>
+<td><strong>never assigned</strong></td>
+<td></td>
+<td>see below</td>
+</tr>
+<tr>
+<td><code>0xD2</code>–<code>0xDF</code></td>
+<td>reserved</td>
+<td></td>
+<td>discard</td>
+</tr>
+</tbody></table></div>
+<p><code>0xC3</code> and <code>0xC8</code> are held out of the assignable set deliberately. Twenty-six values is more than this protocol will ever need, and keeping two in reserve costs nothing against the possibility of a number meaning two things to two captures.</p>
+<p><strong>A type value never ends in 0 or 1.</strong> An interface is free to put framing of its own ahead of the Reticulum packet, and one that does will have its own reachable byte values in this space. The framing this protocol was first built on carries a random 4-bit sequence in the high nibble and a single flag in bit 0, which reaches every value ending in 0 or 1 and nothing else. Conceding those four values costs nothing — twenty-eight remain — and it means a SUPE frame can never be confused with a framing byte from a node that has never heard of SUPE. Any interface that prepends framing must check its own reachable set against this rule before carrying SUPE.</p>
+<p>The grouping is otherwise mnemonic only — <code>0xC2</code>–<code>0xC7</code> for frames on the main channel, <code>0xC8</code> upward for frames inside a detour — and it is not a check a receiver can apply. A reserved value is discarded exactly as a wrong length is (§3). The deferred frames of §17 take numbers from <code>0xCA</code> upward.</p>
+<p><strong>Levels and powers are <code>dBm + 64</code>, read as a signed byte.</strong> Every field carrying a transmit power or a received signal level uses that one encoding, so the representable range is −192 dBm to +63 dBm at 1 dB. The offset is what buys the bottom: a plain signed byte stops at −128 dBm and receivers already report below −130, while nothing needs the top — +63 dBm is two kilowatts, and the regulation caps radiated power at 14 dBm (§14.2). More sensitive receivers are a great deal likelier than five-gigawatt transmitters, so the range is spent accordingly.</p>
+<p><strong>A stated transmit power is the power the frame actually left at, after every cap.</strong> Not the configured power, not the requested one. Every path-loss figure in this protocol is a difference between a stated power and a measured level, so a node that states what it intended rather than what it did corrupts the other side's arithmetic by exactly the amount it was capped — silently, in the direction that makes the link look better than it is.</p>
+<p><strong>Signal-to-noise is a separate signed byte in quarter-decibels</strong>, covering −32 dB to +31.75 dB. It is a ratio rather than a level, needs no offset, and that is both the range and the resolution the silicon reports natively.</p>
+<p><strong>The main channel carries only what it takes to get two nodes onto another channel.</strong> Nothing else belongs there. Full capabilities, train descriptions and verdicts all move to a channel that is faster and bothers only the two parties involved. The one exception is the measurement pair in SUPE_GRANT, which is there because it is free — the frame exists anyway, and two bytes inside it cost nothing against a frame of its own later.</p>
+<p><strong>Main channel.</strong> At the SF7/BW125 most networks hail on (§3), SUPE_START's seven bytes cost 31 ms and SUPE_GRANT's ten cost 36 ms. Each sits on a symbol-group boundary.</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Frame</th>
+<th>Field</th>
+<th>Size</th>
+<th>Meaning</th>
+</tr></thead><tbody>
+<tr>
+<td class="framename">SUPE_START</td>
+<td>type</td>
+<td class="num">1</td>
+<td><code>0xC2</code> — <code>110</code> protocol bits then 5 bits of type (§3)</td>
+</tr>
+<tr>
+<td></td>
+<td>regime / version</td>
+<td class="num">1</td>
+<td>a nibble each — fixes how everything after it is read</td>
+</tr>
+<tr>
+<td></td>
+<td>tag</td>
+<td class="num">3</td>
+<td>first three bytes of the packet's first address field</td>
+</tr>
+<tr>
+<td></td>
+<td>family / ceiling</td>
+<td class="num">1</td>
+<td>a nibble each: this node's radio family (§14.6), and the highest budget it will accept. The peer needs both to resolve the ladder, and cannot have them any other way if it never heard this node's announcement</td>
+</tr>
+<tr>
+<td></td>
+<td>load</td>
+<td class="num">1</td>
+<td>in 32-byte units — how much traffic is queued for this peer, as <code>ceil( Σ(bytes + 16) / 32 )</code> over the queued packets, saturating at 255. <strong>Bytes rather than time</strong>, because the modulation is the peer's to choose and a duration stated before it is chosen means nothing. The 16 bytes charged per packet stand in for its preamble and header (§6)</td>
+</tr>
+<tr>
+<td></td>
+<td>sender identity</td>
+<td>0 or 3</td>
+<td>first three bytes of the sender's own identity hash, under <code>sender_ident</code> (§4); presence is implicit in the frame length</td>
+</tr>
+<tr class="total">
+<td></td>
+<td></td>
+<td><strong>7 or 10</strong></td>
+<td></td>
+</tr>
+<tr>
+<td class="framename">SUPE_GRANT</td>
+<td>type</td>
+<td class="num">1</td>
+<td class="num"><code>0xC5</code></td>
+</tr>
+<tr>
+<td></td>
+<td>regime / version</td>
+<td class="num">1</td>
+<td>a nibble each — <strong>the regime of the detour</strong>, which may be lower than the START's (§6)</td>
+</tr>
+<tr>
+<td></td>
+<td>channel / budget</td>
+<td class="num">1</td>
+<td>a nibble each: the channel index this detour uses, and the link budget on it (§14.3). <strong>Budget 15 means refused</strong>, and then the channel nibble carries the reason</td>
+</tr>
+<tr>
+<td></td>
+<td>duration</td>
+<td class="num">1</td>
+<td>in 20 ms steps — how long the whole transaction takes, computed from the requester's load at the modulation this frame just chose, plus this node's own train and the turnarounds. The only duration on the air, and what every third party holds for</td>
+</tr>
+<tr>
+<td></td>
+<td>power</td>
+<td class="num">1</td>
+<td><code>dBm + 64</code>, signed — what this frame went out at</td>
+</tr>
+<tr>
+<td></td>
+<td>signal strength</td>
+<td class="num">1</td>
+<td><code>dBm + 64</code>, signed — what the START was heard at</td>
+</tr>
+<tr>
+<td></td>
+<td>signal-to-noise</td>
+<td class="num">1</td>
+<td>signed quarter-dB — what the START was heard at</td>
+</tr>
+<tr>
+<td></td>
+<td>START hash</td>
+<td class="num">3</td>
+<td>first three bytes of SHA-256 over the START frame exactly as it was transmitted, all seven or ten bytes of it — which offer this answers, and the transaction's identifier from here on</td>
+</tr>
+<tr class="total">
+<td></td>
+<td></td>
+<td><strong>10</strong></td>
+<td></td>
+</tr>
+</tbody></table></div>
+<p><strong>Capabilities</strong> — two bytes, carried by MANIFEST and by ANNOUNCE2, and never by SUPE_START or SUPE_GRANT:</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Field</th>
+<th>Size</th>
+<th>Meaning</th>
+</tr></thead><tbody>
+<tr>
+<td>family / ceiling</td>
+<td class="num">1</td>
+<td>a nibble each — the same pair SUPE_START carries in the clear, repeated here for nodes that hear the announcement and never the START</td>
+</tr>
+<tr>
+<td>maximum power</td>
+<td class="num">1</td>
+<td><code>dBm + 64</code>, with the adaptive-power flag in the top bit. That bit is free <em>here</em> and nowhere else: a transmit power never stores a negative value, where a received level routinely does</td>
+</tr>
+</tbody></table></div>
+<p><strong>Main channel, continued</strong> — the announcement, at hailing modulation, in every regime</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Frame</th>
+<th>Field</th>
+<th>Size</th>
+<th>Meaning</th>
+</tr></thead><tbody>
+<tr>
+<td class="framename">SUPE_ANNOUNCE2</td>
+<td>type</td>
+<td class="num">1</td>
+<td class="num"><code>0xC4</code></td>
+</tr>
+<tr>
+<td></td>
+<td>regime / version</td>
+<td class="num">1</td>
+<td>a nibble each</td>
+</tr>
+<tr>
+<td></td>
+<td>capabilities</td>
+<td class="num">2</td>
+<td>as above</td>
+</tr>
+<tr>
+<td></td>
+<td>power</td>
+<td class="num">1</td>
+<td><code>dBm + 64</code>, signed — what this frame went out at, so a listener can turn its own reading into path loss</td>
+</tr>
+<tr>
+<td></td>
+<td>identity hashes</td>
+<td>4 × count</td>
+<td>first four bytes of each identity this node holds — last, so the count is implicit in the frame length</td>
+</tr>
+<tr class="total">
+<td></td>
+<td></td>
+<td><strong>5 + 4·count</strong></td>
+<td></td>
+</tr>
+</tbody></table></div>
+<p><strong>Unicast channel</strong> — one frame shape, sent by each side in turn</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Frame</th>
+<th>Field</th>
+<th>Size</th>
+<th>Meaning</th>
+</tr></thead><tbody>
+<tr>
+<td class="framename">MANIFEST</td>
+<td>type</td>
+<td class="num">1</td>
+<td class="num"><code>0xC9</code></td>
+</tr>
+<tr>
+<td></td>
+<td>power</td>
+<td class="num">1</td>
+<td><code>dBm + 64</code>, signed — what this frame and every packet behind it goes out at</td>
+</tr>
+<tr>
+<td></td>
+<td>signal strength</td>
+<td class="num">1</td>
+<td><code>dBm + 64</code>, signed — how the peer's last frame was heard. For the sender's MANIFEST that is the GRANT, on the main channel; for the peer's, it is the train that just arrived, at the detour's own modulation</td>
+</tr>
+<tr>
+<td></td>
+<td>signal-to-noise</td>
+<td class="num">1</td>
+<td>signed quarter-dB, the same frame</td>
+</tr>
+<tr>
+<td></td>
+<td>capabilities</td>
+<td class="num">2</td>
+<td>the sender's — the peer may never have heard its announcement</td>
+</tr>
+<tr>
+<td></td>
+<td>count</td>
+<td class="num">1</td>
+<td>packets in this train. <strong>Zero is meaningful</strong> (§8)</td>
+</tr>
+<tr>
+<td></td>
+<td>length</td>
+<td class="num">1</td>
+<td>how long this train takes, in 5 ms steps; 1.275 s is the ceiling the field imposes</td>
+</tr>
+<tr>
+<td></td>
+<td>transaction hash</td>
+<td class="num">3</td>
+<td>the three bytes the GRANT carried, returned unchanged by both sides for the life of the transaction</td>
+</tr>
+<tr class="total">
+<td></td>
+<td></td>
+<td><strong>11</strong></td>
+<td></td>
+</tr>
+<tr>
+<td><em>the packets</em></td>
+<td class="num">—</td>
+<td class="num">—</td>
+<td>not SUPE frames. Ordinary Reticulum frames in the interface's ordinary framing — its checksum, its existing handling of a packet too large for one frame — transmitted on the unicast channel exactly as they would be on the main one. SUPE decides where and at what rate they go, and touches nothing else about them.</td>
+</tr>
+</tbody></table></div>
+<p>Three rules produce the shapes above, and they should hold for anything added later:</p>
+<ul>
+<li><strong>Every frame has a length the receiver can enumerate</strong> from its regime, version and type alone: one value for most, two for SUPE_START depending on whether the sender names itself, and a count-derived length for SUPE_ANNOUNCE2. Nothing is signalled by a flags byte and nothing is negotiated, so anything outside the enumerated set is discarded (§3).</li>
+<li><strong>On the main channel, count frames, not bytes.</strong> With no checksum, every payload up to the quantum in §3 costs the same — seven bytes at SF7, more at slower hailing configurations. Shaving below it buys nothing, and this is why SUPE_GRANT carries a full measurement pair: the frame was going to cost a symbol group regardless.</li>
+<li><strong>On the unicast channel, also count frames, not bytes.</strong> A short frame there is preamble-dominated, so folding a field into a frame that is already going out is nearly free while adding a frame costs its preamble plus a turnaround. That is why powers, measurements and capabilities all ride inside MANIFEST rather than in an opening exchange of their own.</li>
+</ul>
+<p>No SUPE frame carries a cyclic redundancy check (§3); the Reticulum frames of a train keep theirs, being none of SUPE's business. The regime and version nibbles ride only on frames a stranger may have to judge — the three main-channel frames. MANIFEST omits them: the GRANT that opened the detour fixes the dialect for both, including which regime the detour itself runs under.</p>
+</section>
+
+<section id="s1">
+<h2><span class="n">§1</span><span>The idea</span></h2>
+<div class="rule"></div>
+<p>One robust shared channel that every node camps on, carrying Reticulum announces, path discovery and anything broadcast, plus per-pair private detours for unicast traffic. The detour is arranged in two short frames on the shared channel and runs at whatever rate the pair's measured link supports, in both directions.</p>
+<p><strong>No node identity appears on the air except where a node chooses to publish it.</strong> Transactions are opened on a 3-byte prefix of a Reticulum address and nothing else. The one place a node names itself is its own periodic announcement, which exists to serve the capability table.</p>
+</section>
+
+<section id="s2">
+<h2><span class="n">§2</span><span>What this rests on</span></h2>
+<div class="rule"></div>
+<p>Four properties of Reticulum, each verifiable against its reference implementation. If any of them ceases to hold, SUPE breaks.</p>
+<p><strong>The first address field is always what the next receiver holds.</strong> For a packet in transport it is the next hop's transport identity; at one hop it is the destination hash; on a link it is the link identifier; for an implicit delivery proof it is the truncated hash of the packet being proved, which the sender holds in its receipt and every relay holds in its reverse table. The only traffic whose first address nobody holds in advance is announces and path requests — both broadcast, both of which stay on the main channel.</p>
+<p><strong>The packet hash is invariant under transport rewriting.</strong> <code>get_hashable_part</code> in <code>Packet.cpp</code> masks off header type, context flag and propagation type, skips the transport identity field, and excludes the hop byte. Both endpoints and every relay therefore compute the same value from differently framed copies. This is what lets both sides of a new link derive the same link identifier with no signalling, and what makes proof tags match without coordination.</p>
+<p><strong>You cannot address a neighbour you have not heard.</strong> A specific next hop only exists because a path exists, and a path is only ever built from an announce that neighbour physically transmitted on this interface — the destination itself at one hop, the relaying node otherwise. So whenever SUPE applies at all, the address is known and a signal measurement for that neighbour already exists. Where no next hop is known, Reticulum broadcasts blind and there is nothing for SUPE to negotiate with.</p>
+<p><strong>A node's identity hash is derivable and already shared.</strong> Every Reticulum announce carries the announcing identity's public key, so any receiver can compute that node's identity hash without asking. All of a node's destinations share it, and a transport node's identity hash is literally the address relayed traffic is sent to. That makes it the natural key for a capability table — one entry per node rather than one per destination — and it is why SUPE_ANNOUNCE2 publishes identity hashes rather than destination hashes.</p>
+</section>
+
+<section id="s3">
+<h2><span class="n">§3</span><span>Frames, regimes and versions</span></h2>
+<div class="rule"></div>
+<p><strong>Frames a stranger may have to judge carry a regime nibble and a version nibble</strong> in one byte — the three main-channel frames, per §0.1. The pair fixes how every byte after it is read, so block lengths never need announcing. Each version of each regime carries an expiry date, fixed when the software is built. Past that date a node neither sends nor accepts frames naming it and falls back to plain main-channel operation, so an obsolete dialect leaves the air by itself instead of having to be spoken forever.</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Regime</th>
+<th>Version</th>
+<th>Meaning</th>
+</tr></thead><tbody>
+<tr>
+<td class="num">0</td>
+<td class="num">0</td>
+<td>Single Channel — one frequency, one bandwidth, the spreading factor the only thing that moves</td>
+</tr>
+<tr>
+<td class="num">1</td>
+<td class="num">0</td>
+<td>ETSI EN 300 220, 863–870 MHz</td>
+</tr>
+</tbody></table></div>
+<p>§14 holds both in full: channels, ladder, sync words, timings, ceilings and limits.</p>
+<p><strong>August 2026.</strong> At this stage of development the version of every regime stays at zero and everything here is expected to change. The expiry is what makes that safe, so it does the work a version number would otherwise do: no build should set one more than fourteen days ahead of its own build date. A node left unattended for a fortnight then stops speaking SUPE altogether, which is the intended outcome: far better than speaking a stale dialect at a network that has moved on.</p>
+<p><strong>Every node supports regime 0, and there is no reason not to.</strong> It needs no band plan, no channel raster and no regulatory basis of its own, and even its slowest useful detour beats sending the same packet on the shared channel. In practice every node on a channel either runs the same regime or does not speak SUPE at all; the mixed case that remains is a regime-1 node meeting one that only has regime 0, and §6 handles it by letting the answering node name the lower regime.</p>
+<p>Regime 0 does not move frequency at all, and does not change bandwidth: its channel nibble is always zero. Its whole ladder is the spreading factors above the hailing one, at the hailing bandwidth — two or three budgets on most parts, each worth about 2.5 dB of rate for 2.5 dB of margin.</p>
+<p><strong>Regime 0's number is fixed; do not renumber it.</strong> A frequency-agility setting that already exists on an interface will often document 0 as "no agile channels" rather than as a regime. The two readings agree in the only way that matters: regime 0 has no channel plan, so resolving its number to no agile channels is correct whichever way it is read, and the setting can name the regime unchanged.</p>
+<p><strong>The ladder is measured from the hailing configuration, not written in absolutes.</strong> Budget 1 is one place faster than whatever this network hails at, budget 2 is two, and so on; budget 0 is the hailing configuration itself. A network on SF9/BW125 gets SF8, SF7, SF6 where one on SF7/BW125 gets SF6, SF5 — the same protocol, the same indices, no configuration anywhere.</p>
+<p>Three things make that the right frame of reference:</p>
+<ul>
+<li><strong>The baseline is shared without being sent.</strong> Two nodes arranging a detour are, by definition, hearing each other on the hailing channel, so they already agree on what budget 0 means. Nothing has to carry it.</li>
+<li><strong>It is the floor that matters.</strong> A node we cannot reach at the hailing configuration cannot be reached anywhere else either — every place up the ladder trades margin for rate. So the interesting question is never "what modulation" but "how much margin do we have above the one that already works", which is exactly what the measurements in §10 produce.</li>
+<li><strong>The ladder is monotonic</strong> in both directions (§14.3): every entry is faster and needs more margin than the one below, and no entry is dominated. That is what makes an index meaningful rather than a lookup.</li>
+</ul>
+<p><strong>A budget index means nothing without the channel beside it, and they always travel together.</strong> How many entries the ladder has and what each resolves to depends on the bandwidth the named channel permits — nine entries where 500 kHz is allowed, six where 250 kHz is the ceiling. That was a genuine ambiguity while the sender named a budget without knowing which channel would carry it. It is not one here: SUPE_GRANT carries both nibbles in the same byte, chosen together by the node that knows both, and every recipient resolves against the channel it just read. No mapping table between bandwidths is needed and none should be built.</p>
+<p>What a budget resolves to in absolute terms is still what governs the radio, so the sync word, the header mode and the family limits all follow the <em>resulting</em> configuration rather than the index. A budget landing on SF5 takes <code>0x21</code> and is unavailable on SX127x; the same index on a slower network lands somewhere else entirely and neither applies.</p>
+<p><strong>The type byte is 3 bits of protocol and 5 bits of type.</strong> The protocol bits are <code>110</code>, so every SUPE frame begins <code>0xC0</code>–<code>0xDF</code>, of which 28 are assignable (§0.1). That range cannot collide with Reticulum itself: SUPE requires an interface with no access code (§13), and without one the daemon's flag byte never has its top bit set — the access-code path is the only thing that sets it, and it sets it unconditionally. So anything from <code>0x80</code> up is not Reticulum on a SUPE interface.</p>
+<p><strong>What the range must also dodge is the interface's own framing</strong>, which sits ahead of the Reticulum packet and is therefore what a receiver actually reads first. That is a property of the interface rather than of Reticulum, and it is why §0.1 concedes the four values ending in 0 or 1: restricting what <em>we</em> transmit would do nothing about frames from a node that predates SUPE, whereas choosing type values its framing cannot produce works against every vintage without anyone agreeing to anything.</p>
+<p><strong>A frame whose length is not one the regime, version and type allow is discarded.</strong> The permitted set is tiny — one length for most frames, two for SUPE_START, and a count-derived length for SUPE_ANNOUNCE2 — so the test rejects outright rather than merely suspecting, and it is the last cheap filter before we act on anything.</p>
+<p><strong>Everything an index selects is a constant of the regime.</strong> An index on the wire means nothing except against a table both ends hold identically, so every such table is compiled in and keyed by regime and version — and nothing it contains may be a setting, because two neighbours who configured differently would meet at different frequencies, budgets or sync words and never hear each other. The regime owns:</p>
+<ul>
+<li>the channel raster the detours draw from, which indices name which, and the maximum bandwidth each permits</li>
+<li>the modulation ladder and the rules that order it, along with each entry's coding rate, preamble length, header mode and low-data-rate optimisation</li>
+<li>the sync word each resulting configuration takes</li>
+<li>frame layouts and their lengths, which is what makes the length test possible</li>
+<li>the duration encoding — 20 ms steps, whose range must reach the regime's transaction ceiling (§14) — and the ceilings themselves</li>
+<li>power ceilings, duty and dwell limits per band</li>
+<li>the turnaround and retune constants of §14.7, from which every deadline follows</li>
+<li>the expiry date of the regime itself</li>
+</ul>
+<p>The regime setting picks which of these tables is in force. It is the only radio choice SUPE exposes, and deliberately so: everything else about a detour follows from a number both sides already agree on.</p>
+<p><strong>The hailing channel is the exception, and stays interface configuration.</strong> Its frequency, bandwidth, spreading factor, coding rate, preamble, transmit power and sync word are <code>s.lora.&lt;n&gt;.*</code> as they are today, because that channel is not ours — it is the Reticulum network being joined, shared with neighbours that have never heard of SUPE. A regime that dictated it would be dictating other people's network. SUPE reads those keys and never writes them.</p>
+<p><strong>Sync words: the interface's own on the main channel — <code>0x42</code> by convention and by default — then <code>0x67</code> off it, and <code>0x21</code> at SF5.</strong> The latter two are regime constants selected by the resulting configuration, not fields on the wire: SUPE_GRANT names the channel and budget, so both sides derive the same word with nothing further transmitted and no branch at the call site. Remember that the two-byte form on SX126x is a nibble expansion, not an addition (<code>afa.md</code> §5.4).</p>
+<p><strong>Not all sync words are equally good, and the reason is arithmetic.</strong> The sync word is two symbols after the preamble, and each nibble is scaled by 8 to become a symbol value — a bin index in a space of 2^SF bins. All that separates two sync words on air is the distance between those bins, <code>|Δnibble| × 8</code>, and the demodulator simply takes the strongest bin. So:</p>
+<ul>
+<li><strong>Nibbles that differ by 1 are 8 bins apart</strong> — the minimum, and the most easily confused once noise, frequency offset or clock drift spread energy into neighbouring bins.</li>
+<li><strong>A nibble that matches contributes nothing.</strong> That symbol discriminates not at all, and the pair is down to one symbol of separation.</li>
+<li><strong>Nibbles stay inside 1–7</strong>, because 0 and 8-and-up fall outside the useful scaling.</li>
+</ul>
+<p>Measured that way <code>0x67</code> sits 40 bins from <code>0x12</code> in both symbols and 24 from <code>0x34</code>, which is as far from other people's networks as the space allows. The values to avoid are the ones a nibble step away in both symbols — <code>0x23</code> is the worst of them, one step from <code>0x12</code> and one from <code>0x34</code> — since they look plausible and separate almost nothing.</p>
+<p><strong>SF5 cannot have a good sync word, and does not need one.</strong> Its 32 bins put every nibble above 3 out of range, leaving nine possible words — and <code>0x12</code> is built from two of those three nibble values, so all nine sit within one step of it in at least one symbol. <code>0x21</code> is the best of them, at the minimum separation of 8 bins, and that is the ceiling. What makes it a non-problem is <em>where</em> it is spent: LoRaWAN defines no data rate below SF7, and generic <code>0x12</code> networks live at SF7 and above too, so SF5 is very nearly empty. The strong word goes where the neighbours are, and the weak one where nobody else is listening.</p>
+<p><code>0x42</code> is out of range at SF5 for the same arithmetic — its leading 4 wants bin 32 — but it only ever transmits on the hailing channel, and nothing hails at SF5. Hailing is chosen for reach, so it sits at the slow end of the ladder by definition; SF5 is the far end of the other side.</p>
+<p>Four filters run before anything is believed. The preamble is not among them — plain upchirps are identical on every LoRa network, so a mismatched neighbour still pays the detection. Of the four, the explicit header's own check does most of the work and costs nothing, killing essentially all noise that survives the sync word. The sync word itself is a courtesy separator rather than a barrier (§3). The type byte's protocol bits and the length test then catch what a foreign network could plausibly produce — which, given the header check, is very little.</p>
+<p><strong>No SUPE frame carries a cyclic redundancy check.</strong> All it buys is the radio rejecting a corrupt frame instead of our own parse rejecting it a moment later, and nothing downstream ever sees these frames, so the check has no consumer. What it costs is a symbol group: its 16 bits push a frame into the next group four times in seven, 5 ms each time on a network hailing at SF7/BW125.</p>
+<p>This applies to SUPE's own frames and to nothing else. The Reticulum packets a train carries are transmitted in the interface's ordinary framing, checksum included — they are destined for the daemon, so the radio rejecting a corrupt one saves work that would otherwise be wasted upstream. That is the same reasoning reaching the opposite conclusion, because the consumer is different.</p>
+<p><strong>Payload size on the main channel is quantised, and every frame is sized to a group boundary.</strong> LoRa bills payload in groups of symbols: every length inside a group costs the same, and the byte that crosses into the next one costs the whole group. With the check off, the payload term at a hailing spreading factor of <code>SF</code> is <code>ceil((8·PL − 4·SF + 28) / 4·(SF − 2·DE)) · 5 + 8</code> symbols, where <code>DE</code> is 1 when the low-data-rate optimisation is in force (§14.3) and 0 otherwise. So the groups are <code>(SF − 2·DE)/2</code> bytes wide, and the largest payload inside the <em>k</em>-th is</p>
+<div class="formula">( k·(SF − 2·DE) + SF − 7 ) / 2</div>
+<p>rounded down. At SF7 with the optimisation off that gives:</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>bytes</th>
+<th>symbols</th>
+<th>at SF7/BW125, preamble 8</th>
+</tr></thead><tbody>
+<tr>
+<td class="num">1–3</td>
+<td class="num">13</td>
+<td>26 ms</td>
+</tr>
+<tr>
+<td class="num">4–7</td>
+<td class="num">18</td>
+<td>31 ms</td>
+</tr>
+<tr>
+<td class="num">8–10</td>
+<td class="num">23</td>
+<td>36 ms</td>
+</tr>
+<tr>
+<td class="num">11–14</td>
+<td class="num">28</td>
+<td>41 ms</td>
+</tr>
+</tbody></table></div>
+<ul>
+<li>SUPE_START at seven bytes fills the second group exactly, and its ten-byte form under <code>sender_ident</code> fills the third.</li>
+<li>SUPE_GRANT at ten bytes fills the third exactly. Its measurement pair and its three-byte hash are what fill it: at eight bytes it would cost the same group and say less.</li>
+<li>SUPE_ANNOUNCE2 is the one frame whose length is not fixed, and it is the one frame on this channel that is not sized to a boundary: its <code>5 + 4·count</code> lands where the identity count puts it. One frame per interval per node is what that costs, which is why the interval is long and the count is every identity a node holds rather than one frame each.</li>
+</ul>
+<p>The boundaries move with the hailing configuration, and not always against us: a network hailing at SF12, where the optimisation is compulsory, puts everything up to seven bytes in the <em>first</em> group, so SUPE_START costs one group there rather than two.</p>
+<p>Those figures assume preamble 8; the interface default of 12 adds about 4 ms to each. Against roughly 760 ms for a full 500-byte Reticulum packet on the same channel, the shared-channel cost of a whole detour — both frames — is about one eleventh of a single packet.</p>
+<p><strong>Configurations and channels are indices</strong>, one nibble each, never literal frequency and modulation values — a byte that named them outright would not fit the quantum on the network where the quantum is tightest.</p>
+</section>
+
+<section id="s4">
+<h2><span class="n">§4</span><span>Configuration</span></h2>
+<div class="rule"></div>
+<p>Two keys carry the on/off decision between them, and the division is deliberate. <code>enable</code> is the gate: with it off the device's on-air behaviour is exactly what it was, so there is one thing to turn off when comparing. The regime number names a table and never means "off" — regime 0 is a working regime, not an absence of one.</p>
+<p><strong>The regime is not a key of SUPE's own.</strong> Where an interface already carries a frequency-agility regime number, that key names the regime, because the two are the same quantity under different names: the channels, and what is permissible on them. A second key would be a second answer to one question. A regime number the firmware does not recognise resolves to no agile channels, which is the safe reading of a value it cannot understand.</p>
+<p>All the rest under one prefix. Note what is <em>not</em> here: no channel list, no ladder, no sync words, no durations, timings or limits. Those are regime constants (§3), because both ends must hold them identically. <code>s.lora.&lt;n&gt;.frequency</code>, <code>bandwidth</code>, <code>spreading_factor</code>, <code>coding_rate</code>, <code>preamble</code>, <code>tx_power</code> and <code>sync_word</code> describe the hailing channel, and SUPE only reads them.</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Key</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr></thead><tbody>
+<tr>
+<td><code>s.lora.&lt;n&gt;.SUPE.enable</code></td>
+<td>off</td>
+<td>Speak SUPE on this interface at all. Off means a plain Reticulum LoRa interface.</td>
+</tr>
+<tr>
+<td>the interface's frequency-agility key</td>
+<td><code>0</code></td>
+<td>Which compiled-in regime is in force (§14) — channels, ladder, sync words, timings, ceilings, limits, expiry. The only radio choice SUPE exposes, and the interface's own key rather than one of ours (above). Frames naming an expired regime are ignored.</td>
+</tr>
+<tr>
+<td><code>s.lora.&lt;n&gt;.SUPE.adaptive_txpower</code></td>
+<td>on</td>
+<td>Transmit to each neighbour at a power measured for it, per §15. Off means every frame goes out at <code>tx_power</code>.</td>
+</tr>
+<tr>
+<td><code>s.lora.&lt;n&gt;.SUPE.announce_interval</code></td>
+<td><code>30</code></td>
+<td>Minutes between a node's own SUPE announcements. It governs nothing else; Reticulum's announces are not SUPE's to schedule (§9).</td>
+</tr>
+<tr>
+<td><code>s.lora.&lt;n&gt;.SUPE.worker</code></td>
+<td>off</td>
+<td>This radio does not present an interface to the daemon and is instead available to carry detours for any radio in the same band, so that radio can stay on its hailing channel. See §18.</td>
+</tr>
+<tr>
+<td><code>s.lora.&lt;n&gt;.SUPE.sender_ident</code></td>
+<td>off — <strong>deferred</strong></td>
+<td>Name ourselves in every SUPE_START, so neighbours hold traffic for us as well as for the peer we are servicing (§6). Costs three bytes and one symbol group, and gives up the protocol's default anonymity. A gateway — the node most traffic is addressed to, and the one whose silent absence costs most — should turn it on. <strong>The key ships with the transmitting form and not before</strong>: the flag changes a START's length and therefore its hash, so an implementation parses and honours the ten-byte frame while never sending one, and a setting that governed nothing would be worse than no setting.</td>
+</tr>
+</tbody></table></div>
+</section>
+
+<section id="s5">
+<h2><span class="n">§5</span><span>Addresses that mean us</span></h2>
+<div class="rule"></div>
+<p>The modem keeps one flat set, learned by watching the traffic it carries for the Reticulum daemon. No secrets, no cooperation from the daemon.</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Entry</th>
+<th>Learned from</th>
+<th>Retired by</th>
+</tr></thead><tbody>
+<tr>
+<td>our destination hashes</td>
+<td>an announce we transmit at hop count zero</td>
+<td>effectively never; refreshed by re-announce</td>
+</tr>
+<tr>
+<td>our transport identity</td>
+<td>an announce we relay — its first address field is ours</td>
+<td>effectively never</td>
+</tr>
+<tr>
+<td>link identifiers we terminate</td>
+<td>anything we transmit at hop count zero addressed to a link</td>
+<td>an observed link close; otherwise keep-alive staleness</td>
+</tr>
+<tr>
+<td>link identifiers we relay for</td>
+<td>forwarding a frame addressed to a link — the return direction of a relayed link arrives addressed to the link identifier, not to our transport identity, so a relay that skips this sleeps through it and the link dies</td>
+<td>the same</td>
+</tr>
+<tr>
+<td>pending proofs</td>
+<td>the truncated hash of each packet we send or relay that may attract a delivery proof</td>
+<td>the proof arriving; otherwise the receipt or reverse-table timeout</td>
+</tr>
+</tbody></table></div>
+<p>Store the 3-byte prefix, an expiry, and a small reference count — 24 bits with a thousand live entries collides internally often enough that a link close must not unlist an unrelated pending proof. Roughly eight bytes an entry.</p>
+<p>The full comparison is not the modem's job. It hops, receives, and hands the frame up; the daemon does the authoritative match. A false positive therefore costs one receive window and nothing else, which is what licenses the whole scheme's imprecision.</p>
+<p>Which traffic actually produces pending proof hashes is narrow: single data packets to a destination that proves deliveries — in practice opportunistic Lightweight Extensible Message Format delivery — and relayed copies of those. Link traffic never does, because proofs over a link are addressed to the link identifier and the link entry already covers them.</p>
+
+<h3 id="s51"><span class="n">§5.1</span><span>Addresses that mean someone else</span></h3>
+<p>The mirror of the table above, and what budget selection actually runs on: given a tag about to be sent to, which node is behind it, and what is known about reaching that node. Three joins build it, all from traffic the modem is already carrying:</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Tag</th>
+<th>Resolves to its node by</th>
+</tr></thead><tbody>
+<tr>
+<td>a transport identity</td>
+<td>being one already — a relayed announce's first address field is the relaying node's identity hash</td>
+</tr>
+<tr>
+<td>a destination hash</td>
+<td>the Reticulum announce that carried that destination's public key, whose truncated hash is the identity (§2)</td>
+</tr>
+<tr>
+<td>a link identifier</td>
+<td>the destination the link request was addressed to, recorded as the request goes past</td>
+</tr>
+</tbody></table></div>
+<p>Capabilities and measurements hang off the identity, never off the tag, so a node with forty destinations costs one capability entry and forty pointers. This is the table that answers "what budget" — §10 is what fills it.</p>
+</section>
+
+<section id="s6">
+<h2><span class="n">§6</span><span>Messages on the main channel</span></h2>
+<div class="rule"></div>
+<p><strong>Tag</strong> — 3 bytes, always the first three bytes of the first address field of the packet about to be sent, and nothing more. It has one meaning: an address the peer holds. There is no type, no flag and no second interpretation, because the receiver has one flat table (§5), a hit is a hit, and what follows — answer, hop, receive, hand up, let the daemon judge — never depends on why the entry is there.</p>
+<p>That includes delivery proofs, which are addressed to the truncated hash of the packet being proved. Exactly two nodes hold that hash: the origin, in its receipt, and the one relay that forwarded the packet, in its reverse table. A packet in transport names its next hop, so no second relay ever handled it and no third node ever wakes. The tag is as precise here as anywhere else.</p>
+<div class="rule" style="margin:26px 0 22px;max-width:68ch"></div>
+<p><strong>SUPE_START</strong> — sender to peer, overheard by all <em>"I have traffic for whoever holds this address, about this much of it, and this is what my radio can do. Where shall we go?"</em></p>
+<p>Seven bytes, or ten where it names itself. It is a <strong>request, not a commitment</strong>: nothing has been decided, no channel has been named, and a sender that hears nothing back simply transmits on the main channel as it always would.</p>
+<p>It carries the sender's family and ceiling in the clear because the peer needs both to resolve the ladder, and may never have heard the sender's announcement. Two nibbles is the whole cost, and it is what removes any requirement that a budget index mean the same thing to two nodes that do not know each other's silicon.</p>
+<p><strong>The load is stated in bytes, and that is the only honest unit available here.</strong> The requester does not know the modulation — the peer has not chosen it yet — so any figure in milliseconds would be a guess at the hailing rate that the peer is about to invalidate. Bytes convert cleanly the moment the modulation is fixed, and they convert the same way for every listener.</p>
+<p>What it counts is <code>ceil( Σ(bytes + 16) / 32 )</code> over the packets queued for this peer, saturating at 255 and therefore reaching 8160 bytes. <strong>The unit is scaled to a train.</strong> At the fastest entry any regime here reaches — SF5/BW500 — a second of air carries about 7 KB: twenty-eight full 255-byte frames in 979 ms, and 7.2 KB/s for traffic split the way Reticulum actually splits it. So a saturated load byte means "at least a train's worth", which is the only thing the peer needs to know at that end of the range, and the quantum is small enough that anything shorter is described to within one 20 ms duration step.</p>
+<p>The sixteen bytes charged per packet stand in for its preamble and header, which are real airtime and which a byte count alone would miss entirely. LoRa airtime is symbols: an opening costs 24.25 of them, or 26.25 at SF5 and SF6 where the header term is longer, and payload runs at <code>10 / SF</code> symbols a byte. That puts the true figure at 13 bytes at SF5, 17 at SF7 and 24 at SF12 — so sixteen is close across the whole ladder, and in any case smaller than the 32-byte quantum it feeds.</p>
+<p>Folding the overhead into the byte count this way is also what lets the peer treat the load as one blob rather than needing the packet count: the per-packet cost is already in it.</p>
+<p>There is no duration field here, and there does not need to be: every listener has the load and the hailing configuration, so anyone who wants a pessimistic bound before the GRANT arrives can compute the same one the requester would have sent.</p>
+<p><strong>Our own identity, only if <code>sender_ident</code> says so.</strong> Without it a START names the peer and no one else, which is what keeps the protocol anonymous — and what leaves the sender unprotected, since neighbours can hold traffic only for a tag they can recognise, and nothing on the wire says who left. That asymmetry falls hardest on exactly the node it should spare: a gateway is the tag most traffic is addressed to, so when it initiates a detour, everyone's traffic to it goes into an empty channel. Naming ourselves costs three bytes, one symbol group, and the anonymity; it buys neighbours the ability to hold for us too. It is a deployment choice, and a gateway should make it.</p>
+<p>There is no discovery handshake and no cold start, because there is nothing to discover. A detour is only ever requested of a peer whose SUPE_ANNOUNCE2 has been heard, which is what makes it a peer at all in SUPE's terms. Its address and a signal measurement come from the Reticulum announce that built the path (§2).</p>
+<div class="rule" style="margin:26px 0 22px;max-width:68ch"></div>
+<p><strong>SUPE_GRANT</strong> — peer to sender, overheard by all <em>"Meet me on that channel at that budget. I will be gone this long, this frame went out at that power, and I heard you at this one."</em></p>
+<p>Ten bytes, and the single most consequential frame in the protocol.</p>
+<p><strong>The answering node chooses, and that is the point.</strong> It has been camped on the main channel and knows which channels it has recently heard quiet, which the requesting node structurally cannot know — it is about to transmit, not listen, and an excursion to sense a candidate would put a retune on the transmit path to read the wrong end of the link anyway. It knows its own airtime budget per channel, its own recent transmissions and the 100 ms reuse gaps they imply. And it knows the requester's family from the START, so it can resolve the ladder for the channel it is choosing, in the same breath, with no ambiguity about which ladder either side means.</p>
+<p><strong>It costs no contention.</strong> SUPE_GRANT is a turnaround response inside a transaction, transmitted within the interval of §14.7 without carrier sense — the medium was just won by the frame it answers. So its cost is its airtime and nothing else.</p>
+<p><strong>It is also the arrival proof, and that is why no such frame exists on the detour channel.</strong> Hearing a GRANT establishes that the peer is present and willing, before either side has spent a retune on it — earlier than any detour-channel frame could, and without a turnaround.</p>
+<p><strong>Refusal is a first-class answer.</strong> Budget 15 means refused and the channel nibble carries the reason: out of airtime on every channel, no channel quiet, the regime is not one this node runs, the ceiling asked for is beyond it, or simply busy. A refusal still carries its power and measurement bytes, so it is not a wasted frame — the requester gets a free path-loss reading out of being told no. What it buys is knowing <em>how long</em> not to ask again: a node out of airtime for the hour and a node busy this second want very different backoffs, and silence cannot tell them apart.</p>
+<p><strong>The regime nibble is the detour's, and may be lower than the request's.</strong> A node that has only regime 0 answers a regime-1 START with a regime-0 GRANT, naming channel 0 and a budget on the hailing frequency. Since every node supports regime 0 (§3), that is a working answer rather than a refusal, and it makes regime 0 the universal floor beneath every richer plan. Raising the regime above the request's is not permitted: the requester named what it can speak.</p>
+<p><strong>Everyone else</strong> who hears the GRANT holds traffic addressed to the tag — and to the requester's identity, when it named itself — for the stated duration. It is a virtual carrier-sense hint, not a reservation: other pairs keep using the main channel meanwhile, nodes out of earshot will not hold, and anything sent regardless is covered by ordinary Reticulum retries. Returning early is visible as ordinary traffic.</p>
+<p><strong>One duration, stated by the node that computed it.</strong> Both sides derive their own deadlines from the modulation and the load, so neither needs the number for its own conduct; it is on the air for third parties, and it is stated by the only node in a position to compute it correctly. A node that hears the START and not the GRANT holds nothing, which is right: nothing was arranged.</p>
+<p><strong>A hold is released early by the access procedure's fixed interval, not at the duration itself.</strong> Every contention machine opens with a fixed idle period before its random draw begins — a DIFS, in the shape <code>psa.md</code> §5 describes. A node that holds for the full stated duration and <em>then</em> starts that fixed interval enters the draw one whole interval behind a node that was never holding at all.</p>
+<p>That is a real and systematic penalty, and it falls on the node that was being polite. Detours are short and frequent, so a node in a SUPE neighbourhood holds often; a node that never heard the hint never holds and is in the draw first, every time.</p>
+<p><strong>This is a fairness problem in access ordering, and not the whole ledger.</strong> A node that transmits into the pair regardless does pay for it, and pays more: it spends a full packet's airtime on a receiver that is not there, gains a retransmission at the layer above, and the medium is occupied for all of it. The hold is self-interested before it is polite — a held packet is a packet not wasted. What the subtraction fixes is narrower and still worth fixing: having correctly declined to waste a transmission, a node should not then be last in line.</p>
+<p>So a holding node <strong>starts its fixed interval at <code>duration − fixed_interval</code></strong>, timed so the interval ends exactly as the pair is due back and the random draw begins from there. Nothing transmits before the pair returns — the draw is still ahead of it — and a node that held now enters contention on the same footing as one that did not. Two properties make this safe: the interval being subtracted is idle time, so nothing is emitted during it; and it is the <em>fixed</em> part that moves, never the random part, so the draw that separates two nodes wanting the channel at the same instant is untouched.</p>
+<p>The returning pair does not get the same treatment and should not: it cannot sense a channel it is not on, so it senses on arrival like anyone else. It has just had the medium to itself, and going to the back of the queue is the correct outcome.</p>
+<div class="rule" style="margin:26px 0 22px;max-width:68ch"></div>
+<p><strong>What the second frame costs, and what it buys.</strong> At SF7/BW125 the pair costs 67 ms of shared channel where a bare offer alone would cost 31. Against a 500-byte packet's 797 ms on the same channel that is 8 % rather than 4 %, and it buys:</p>
+<ul>
+<li>the reverse direction on the same detour, which halves the number of detours for any traffic that stalls for a delivery proof — which is most interactive traffic</li>
+<li>one fewer frame and one fewer turnaround on the detour channel</li>
+<li>a channel chosen by the node that can actually judge it</li>
+<li>a refusal that can be acted on</li>
+<li>a measurement pair delivered before either side leaves the main channel, so even a detour that fails outright has taught both sides something</li>
+</ul>
+<p>For a single small packet in one direction it is the worse trade, and honestly so. For everything else it is not close.</p>
+</section>
+
+<section id="s7">
+<h2><span class="n">§7</span><span>Announcing</span></h2>
+<div class="rule"></div>
+<p><strong>SUPE_ANNOUNCE2</strong> — us to everyone, once per announce interval, on the main channel at the hailing configuration, in every regime <em>"These identities are me, this is what my radio can do, and this frame went out at that power."</em></p>
+<p><strong>It goes out where everyone is already listening.</strong> An announcement has to reach nodes that know nothing about us yet, and the hailing configuration is the only one every node is known to be camped on. Moving it to a channel of its own would save this frame's airtime on the shared channel once per interval per node, and charge every listener in earshot two retunes and a deafness window to collect it — which is the worse trade in a neighbourhood of any size, and it is why there is no announce channel and no frame announcing one.</p>
+<p>The power byte is what makes the frame worth hearing: a listener already has its own reading of it, and the two together give path loss rather than a bare signal level.</p>
+<p>Identity hashes, not destination hashes: a node typically has more destinations than identities, and any receiver of a Reticulum announce can already derive the identity hash from the public key it carried (§2). Four bytes rather than the three used for tags, because a tag names one transaction and tolerates collisions while this names a node in a table that persists — the extra byte is worth its airtime here and not there.</p>
+<p><strong>Every identity a node holds rides in one frame.</strong> On the main channel an unbundled announcement would spend a preamble and a frame per identity where one frame carries all of them, so unbundling costs strictly more for every party in earshot and buys nothing. There is no setting here and nothing to spread in time. The only bound is the frame itself: a count that will not fit one frame leaves its surplus for the next beat, which is a sender-local choice needing no agreement.</p>
+<p><strong>No power sweep follows it.</strong> Ordinary operation measures the same thing and measures it continuously: every frame in this protocol that carries a measurement also carries the power that produced it, so each exchange yields path loss rather than a bare reading, at two configurations, for free. A deliberate sweep would buy a cliff measurement the controller can derive from path loss and a target margin anyway, and it would buy it once every thirty minutes instead of on every exchange.</p>
+<p><strong>Every SUPE node files every ANNOUNCE2 it hears</strong>, and it costs nothing to: the frame arrives on the channel the node is already camped on, so there is no listening decision to make and no window in which anything else is missed. Capability entries go stale and nodes reboot, and a listener that tried to judge its interest in advance would have no way to know when it had judged wrong.</p>
+</section>
+
+<section id="s8">
+<h2><span class="n">§8</span><span>Messages on the unicast channel</span></h2>
+<div class="rule"></div>
+<p>One frame shape, sent by each side before its own train, and the requesting node speaks first. No acknowledgement, and no negotiation: everything was settled on the main channel.</p>
+<p><strong>Both sides retune on the GRANT.</strong> The requester retunes when it has transmitted nothing further; the answering node retunes the moment its GRANT is out. Both observe the retune gap of §14.7 before transmitting, and the requester's MANIFEST is the first thing on the channel.</p>
+<p><strong>MANIFEST</strong> — before each train <em>"This train goes out at that power, here is how I heard you, here is what my radio can do, expect this many packets, and it will take this long."</em></p>
+<p>It carries capabilities unconditionally, in both directions. Each side has seen the other's family in the START or inferred it from the GRANT, but neither has necessarily heard the other's announcement, and two bytes on this channel are not worth a condition.</p>
+<p><strong>Its measurement is the one a one-directional detour cannot take.</strong> Each MANIFEST reports how the peer's last frame was heard, and because every frame in this protocol states its own transmit power, that reading becomes a path loss immediately. The requester reports the GRANT as it heard it on the main channel — closing the reverse path at the hailing configuration. The answering node reports the train it has just received, at the detour's own modulation — which is the only way a sender ever learns how its own train landed, and the reason the reverse MANIFEST is worth a frame even when there is no traffic behind it.</p>
+<p><strong>MANIFEST is fixed length, and that is what lets it be its own confirmation.</strong> A peer waiting on a frame whose length it cannot predict has to wait generously; a peer waiting on eleven bytes at a known modulation has an exact deadline. Hearing it also tells the receiver that this modulation closes in that direction, so nothing further needs to be exchanged before the packets start.</p>
+<p><strong>Count zero is meaningful, and it is how a transaction ends.</strong></p>
+<ul>
+<li><strong>count 0, length 0</strong> — nothing to send and nothing coming. The sender of this MANIFEST returns to the main channel immediately, and so does the receiver on hearing it. This is the ordinary close.</li>
+<li><strong>count 0, length &gt; 0</strong> — nothing <em>yet</em>. Stay for that long; a further MANIFEST may follow. This exists for one specific and very common case: a delivery proof is generated by the daemon on receipt, so it exists a few milliseconds after a train lands rather than at the instant the train ends, and a protocol that stalls for that proof would otherwise pay for a whole second detour to collect it. The grace is bounded by the transaction ceiling of §14 like everything else, and it is the one place in the protocol where a node waits for something it cannot compute — which is why it is stated as a deadline rather than as a condition, and why it is first in line for the traffic patterns of <code>simulation.md</code> §7.</li>
+</ul>
+<p><strong>The transaction hash</strong> is the three bytes the GRANT carried, returned unchanged by both sides for the life of the detour, and it is not redundancy. Two pairs out of earshot of each other can be granted the same channel at the same moment and neither will know. Echoing the tag would not separate them: the dangerous case is precisely two requesters wanting the <em>same</em> tag, which on a segment with one transport node is the ordinary case rather than a corner one (§11). The START's own hash does separate them, because each requester knows exactly what it transmitted and each answering node knows exactly what it received.</p>
+<p>So a <strong>MANIFEST quoting a hash this node did not grant or was not granted</strong> means the channel is carrying somebody else's exchange. Leave at once rather than waiting out the deadline, and do not count the train that follows as your own — a collision converted into an immediate return rather than a mixed-up exchange.</p>
+<p><strong>The packets</strong> × count — and <strong>these are not SUPE frames.</strong> They are ordinary Reticulum frames in the interface's ordinary framing, checksum and all, including whatever it already does with a packet too large for a single frame. SUPE chose the channel and the rate; it does not touch what travels on them. What differs from the main channel is only the absence of carrier sensing, there being nobody else here, and that they arrive back to back.</p>
+<p>The two kinds stay distinguishable by the rule that already separates them on the main channel: a SUPE frame begins <code>0xC0</code>–<code>0xDF</code>, and a Reticulum frame on an interface without an access code never has its top bit set at all (§3). Each side counts <em>packets</em>, not frames, so a split packet counts once, when both halves are in.</p>
+<div class="rule" style="margin:26px 0 22px;max-width:68ch"></div>
+<p><strong>A detour is worth taking whenever there is a peer to take it with</strong>, and the reason is that the sender's own arithmetic is the wrong arithmetic. Weighed as a private trade — overhead against the fraction of airtime the faster modulation saves — a small packet looks marginal. Weighed from where the scarcity actually is, it is not close.</p>
+<p><strong>Count it from the other side of the room.</strong> For every node except the two involved, a detour replaces a packet's entire main-channel airtime with two short frames. Nothing else is spent there.</p>
+<p><strong>One contention wait covers the whole thing.</strong> The requester's carrier-sense covers the START, the GRANT that answers it and the detour behind both, and the same wait would have been paid to transmit on the hailing channel anyway. So a detour's cost against a plain transmission is the two frames plus turnarounds and retunes, and the comparison reduces to airtime — which computes, hailing at SF7/BW125 against a detour at SF5/BW500:</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Reticulum packet</th>
+<th>all on the hailing channel</th>
+<th>detour</th>
+<th>saving</th>
+</tr></thead><tbody>
+<tr>
+<td>19 B</td>
+<td>60.7 ms</td>
+<td>81.7 ms</td>
+<td>−21.0 ms (worse)</td>
+</tr>
+<tr>
+<td>100 B</td>
+<td>178.4 ms</td>
+<td>91.9 ms</td>
+<td>86.5 ms (48 %)</td>
+</tr>
+<tr>
+<td>254 B</td>
+<td>403.7 ms</td>
+<td>111.8 ms</td>
+<td>291.9 ms (72 %)</td>
+</tr>
+<tr>
+<td>500 B</td>
+<td>797.2 ms</td>
+<td>145.1 ms</td>
+<td>652.1 ms (82 %)</td>
+</tr>
+</tbody></table></div>
+<p><strong>Break-even is not the smallest packet, and that should be stated plainly.</strong> A single main-channel frame would break even at the smallest thing Reticulum can emit; the second frame moves it, and a bare 19-byte header alone in one direction costs more than sending it plainly. Three things make that acceptable rather than a fault. The row assumes the reverse direction is empty, and the reverse direction is exactly what the second frame bought — a 19-byte packet that draws a proof back needs one detour where it would otherwise need two. The 100-byte row, which is where real traffic lives, still saves half. And the decision is not fixed here: §18 puts it in one function with the queue in front of it, so a lone small packet in one direction can simply not detour.</p>
+<p><strong>Across a batch the wait does not cancel — it compounds, and against the shared channel.</strong> Each packet sent conventionally contends separately, and the contention band is chosen from the node's <em>own</em> accumulated transmit duty, so a batch walks its own waiting time upward as it goes. Fourteen 500-byte packets on an idle medium, starting from nothing: the first waits 160 ms, the next six 460 ms as the node crosses into the second band, the last seven 760 ms in the third. <strong>19.40 s, of which 8.24 s is contention alone.</strong> The same payload as one detour is <strong>1.20 s</strong> — a wall-clock win of over sixteen times that also hands 11.12 s of shared medium back to every other node in range.</p>
+<p><strong>And the node that detoured stays cheap.</strong> It credited about 75 ms of airtime to the shared channel rather than eight hundred, so it remains in the lowest contention band while a node that sent conventionally now sits in the third. The detour shortens every one of its future waits as well — but only if detour airtime is accounted separately and never credited against the hailing channel's own duty figure. That is an implementation requirement, not an optimisation: get it wrong and this effect disappears silently.</p>
+<p><strong>It improves with load, which is when it matters.</strong> The two frames are a fixed cost amortised over the whole transaction: one packet relieves the shared channel of one packet's airtime for 67 ms, fourteen relieve it of fourteen for the same 67 ms. Trains grow when a node is busy, and a node is busy when the channel is contended — so the mechanism is most efficient exactly when the network most needs it to be.</p>
+<p><strong>What fills a train is a resource transfer</strong>, and it fills it as a batch rather than a trickle. Reticulum's resources are receiver-driven: the receiver asks for a window of parts by hash, and the sender's handler for that request transmits every part it names in one pass, back to back, with nothing between them. The window opens at 4 and grows toward a ceiling the link's measured performance sets — 4 on a very slow link, 10 on a slow one, 75 where the rate justifies it. At a link data unit of 431 bytes those ceilings are 1.7 KB and 4.3 KB a batch, against about 7.8 KB for a one-second train at the fastest budget, so a slow-link window fits inside a single train with room to spare. Only the fast ceiling overflows one, and then into four.</p>
+<p>There is a loop in that worth noticing: the window ceiling is chosen from measured rate, SUPE raises the measured rate, a wider window makes fuller trains, and fuller trains raise it again. Resource parts are also the one traffic that never needs a delivery proof — they are link traffic, so they never enter the pending-proof set of §5 at all, and only the finished resource is proved, once, at the end.</p>
+<p><strong>Each train ends by arithmetic, not by agreement.</strong> The receiver returns when it has the stated number of packets or when the stated length expires, whichever comes first; the sender returns when the last packet is out. Both outcomes are known from that MANIFEST alone, and neither side's arithmetic depends on the other's.</p>
+<p><strong>Nothing is acknowledged and nothing is repeated.</strong> A packet lost here is lost the way a packet on the main channel is lost, and the layers above deal with it as they always do — delivery proofs, channel windows, resource part requests. Adding repair would mean holding traffic for the sender and negotiating over it. What a sender does get is the peer's MANIFEST, which tells it how the train landed — enough to choose a lower budget next time, which is what the information was wanted for.</p>
+<p><strong>One failure path, the same for both sides: go back to the main channel.</strong> Nothing can be renegotiated on this channel, because any adjustment would have to be inferred by both sides in lockstep while neither can hear the other. Both deadlines follow from regime constants and the resolved modulation, so both sides know them without exchanging anything, and the duration announced in the GRANT covers the worst case for everyone else.</p>
+</section>
+
+<section id="s9">
+<h2><span class="n">§9</span><span>Reticulum announces are not ours to touch</span></h2>
+<div class="rule"></div>
+<p>Announces a node originates go out as the daemon hands them over, and relayed announces likewise. No buffer, no replay, no batching, no pacing. An announce is the daemon's decision and its timing is part of what it decided.</p>
+<p>The one setting that mentions announcing therefore concerns SUPE's own frames alone: <code>announce_interval</code> is the gap between a node's SUPE_ANNOUNCE2 frames and governs nothing a Reticulum announce does.</p>
+</section>
+
+<section id="s10">
+<h2><span class="n">§10</span><span>What is learned, and where it is filed</span></h2>
+<div class="rule"></div>
+<p>Everything below is learned from traffic that was going to happen anyway. Nothing is measured on purpose, and nothing is transmitted in order to measure.</p>
+<p>Against the identity hash, once its SUPE_ANNOUNCE2 has been heard: capabilities, maximum transmit power, whether it honours adaptive power requests. That entry serves every destination the node owns and, if it is a transport node, all traffic relayed through it — its identity hash is the address that traffic is sent to.</p>
+<p>Against the tag: path loss, never a bare signal level. Every reading is a pair — a level measured here, and the transmit power that produced it, stated by the other side. <strong>A detour yields four such pairs and closes both directions at both modulations:</strong></p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Pair</th>
+<th>Learned by</th>
+<th>From</th>
+<th>At</th>
+</tr></thead><tbody>
+<tr>
+<td>A → B</td>
+<td>B</td>
+<td>its own reading of the START, against the power A stated</td>
+<td>the hailing configuration</td>
+</tr>
+<tr>
+<td>B → A</td>
+<td>A</td>
+<td>its own reading of the GRANT, against the power B stated</td>
+<td>the hailing configuration</td>
+</tr>
+<tr>
+<td>A → B</td>
+<td>B</td>
+<td>its own reading of A's train, against the power A's MANIFEST stated</td>
+<td>the detour's modulation</td>
+</tr>
+<tr>
+<td>B → A</td>
+<td>A</td>
+<td>its own reading of B's train, against the power B's MANIFEST stated</td>
+<td>the detour's modulation</td>
+</tr>
+</tbody></table></div>
+<p>Nothing in that table is a reciprocity assumption, and there are no gaps left in it. Every reading is taken by the node that will use it, of a frame whose transmit power the other side stated in the frame itself.</p>
+<p>Two bindings that save a slow first detour:</p>
+<ul>
+<li><strong>Links inherit.</strong> When the packet being sent is a link request, both sides compute the same link identifier independently and file everything under it, so all later traffic on that link opens at the peer's best budget.</li>
+<li><strong>Relays file per packet.</strong> A relay handling a packet that may attract a proof records the sender's capabilities and signal against the reverse-table entry, not against the tag — the tag that transaction opened on was the relay's own transport identity, which every neighbour relaying through it shares.</li>
+</ul>
+</section>
+
+<section id="s11">
+<h2><span class="n">§11</span><span>Failing well</span></h2>
+<div class="rule"></div>
+<ul>
+<li><strong>No GRANT by the deadline</strong> — the peer is away on someone else's detour, did not hear the START, or heard it and could not answer in time. <strong>A START that draws no GRANT is the cheapest presence test this protocol has</strong>, and it is what absence is concluded from: 31 ms of shared channel and a deadline, against roughly 760 ms to transmit a full packet into an empty room. Because the peer chooses the channel and the modulation, there is nothing to walk down and no escalation across the raster — the ladder that a sender-chooses protocol needs does not exist here. What escalates instead is the <em>request itself</em>, along the two axes the requester still owns:<p><strong>Power up, ceiling down.</strong> Each retry goes out at more power than the last, the third at the configured maximum (§15), and each asks for a lower ceiling nibble than the last, the third asking for budget 0. The first covers a peer that simply did not hear us; the second covers a peer that heard us and could offer nothing it thought we would accept. Neither is knowable from silence, so both are tried.</p></li>
+<li><strong>The absence ladder, in full.</strong> On a peer with no absence record:<p>1. <strong>Request.</strong> Silence, so wait a short randomised interval — long enough to outlast somebody else's detour, which is the likeliest cause — and 2. <strong>request again</strong>, more power, lower ceiling. Silence, wait again, and 3. <strong>request a third time</strong>, at maximum power and budget 0. Silence.</p><p>Then the peer is <strong>absent for one minute</strong>, and traffic addressed to it is <strong>dropped</strong> rather than transmitted into the void — safe, because link data, channel traffic, resource parts and proofs all have retry or receipt machinery above (§12). Three requests is about 93 ms of shared channel, an eighth of what one full packet would have cost.</p><p><strong>A peer that already has an absence record gets one request, not three.</strong> The ladder exists to establish absence, not to re-establish it; once established, each subsequent attempt is a single request at maximum power and budget 0, and silence renews the minute. The cost of a peer that is genuinely gone therefore falls to one short frame a minute.</p></li>
+<li><strong>Absence is cancelled by any evidence of life, not by the clock alone.</strong> Hearing the node at all clears the record immediately and restores the full ladder: its Reticulum announce, its SUPE_ANNOUNCE2, a GRANT it sends to somebody else, or a packet from it we carry or relay. Talking to a third party is as good as talking to us — better, in fact, since it proves both presence and that the radio is working. This is what keeps a busy transport node, which is away on other people's detours constantly, from being written off by the one mechanism that would hurt most.</li>
+<li><strong>A refusal is not a failure.</strong> It says how long not to ask again, which silence cannot. Honour it: a node that has told us it is out of airtime for the hour and is asked again in a second has been given a reason to stop answering at all.</li>
+<li><strong>The answering node owns channel quality, and learns from it.</strong> If the detour fails after a GRANT — no MANIFEST arrives — the channel it chose is the prime suspect, and it is the node holding the evidence. It should not choose that channel again for that peer for a while. The requester learns nothing here and should not try to.</li>
+<li><strong>Absence is a provisional verdict, not a finding</strong>, and every part of the ladder above is shaped by that. The same silence is produced by a peer away on someone else's detour, and a busy transport node is away constantly — it is the tag most traffic is addressed to, so it is both the node most likely to be mid-detour and the node whose wrongly-declared absence costs most. Three things keep the verdict cheap: the interval between requests is longer than a detour, the verdict expires by itself, and any evidence of life cancels it outright.</li>
+<li><strong>Dropping is otherwise a queue policy</strong> (§18), driven by age and depth. The one place this protocol drops traffic of its own accord is the absence hold above, and it drops there precisely because the alternative is transmitting a full packet into an empty room, at twenty-five times the cost of the request that already established nobody is listening.</li>
+<li><strong>Two requesters can want the same tag at once</strong>, and on a segment with one transport node they usually do — every neighbour's traffic is tagged with that node's identity. The answering node grants one of them; the other hears a GRANT quoting a hash it did not send and knows immediately that it was not answered, rather than waiting out a deadline. A small randomised delay before requesting keeps the collision from repeating in lockstep. The loser must not read this as absence — it is the opposite, direct evidence the peer is present and busy.</li>
+<li><strong>Traffic to anything that is not a SUPE peer</strong> never enters this at all. No announcement heard means no request made, and the packet goes on the main channel exactly as it would on an interface with SUPE switched off.</li>
+<li><strong>Never detoured</strong> — Reticulum announces and path requests. They are broadcast, so there is no tag to name and no single peer to meet; they go on the main channel with no SUPE involvement. This is also why no reserved wildcard tag is needed: the radio dwells on the main channel by default.</li>
+<li><strong>Expired regime</strong> — a node whose regime is past its date stops speaking SUPE and operates as a plain interface. Its neighbours discover this the ordinary way, by it not appearing.</li>
+<li><strong>Deafness window</strong> — a node away on a detour misses main-channel traffic. Announces repeat on their interval and path requests are retried, so with short detours this is noise against announce cadence. §18's worker radios remove it entirely where a second radio exists.</li>
+<li><strong>A packet lost on the unicast channel</strong> is lost exactly as one lost on the main channel is, and the layers above handle it identically.</li>
+<li><strong>Duplicates</strong> from a partially completed detour followed by a main-channel resend are absorbed by Reticulum's duplicate hash list.</li>
+<li><strong>Reordering</strong> is safe: sequence numbers in channels, hash maps in resources, message-level handling above.</li>
+</ul>
+</section>
+
+<section id="s12">
+<h2><span class="n">§12</span><span>Staying invisible to the daemon</span></h2>
+<div class="rule"></div>
+<p>Nothing here alters what is on the wire at the Reticulum layer or what the daemon sees. The modem delays and reroutes frames; the packets themselves pass through untouched.</p>
+<p>The one real interaction is arithmetic. The daemon derives receipt timeouts, link keep-alive intervals, channel windows and the announce bandwidth cap from the interface's declared bitrate. Because the modem varies modulation per transaction and adds rendezvous latency, that declared number must describe the <em>effective</em> rate including detours, not the unicast channel's rate — otherwise the far end of exactly the paths this speeds up reports delivery failures.</p>
+<p><strong>The concrete mechanism to watch is Channel's retransmit deadline</strong>, which is <code>2.5 × RTT × (ring + 1.5)</code> with five tries tearing the link down. A packet held through a request, an answer, a retune and a train can trip it, and Channel then resends a packet the modem is still holding — duplicate airtime, which is the exact opposite of the win. There are two ways out and the choice has to be made explicitly rather than discovered: surface the queue delay far enough upward that the round-trip estimate and the timeouts derived from it inflate to match, or bound a detour to complete inside the budget that already exists.</p>
+<p><strong>A detour is bounded to complete inside the budget</strong> — the second. The first reaches up into the daemon, which is the one thing this protocol is built not to do, and it would trade an arithmetic constraint SUPE can satisfy for a change in software SUPE does not own. Bounding costs a ceiling on how long a transaction may run, and both regimes already state one or derive one from the field widths (§14), so the constraint is a comparison rather than a new mechanism.</p>
+<p><strong>The reverse direction cuts both ways here.</strong> The reverse train and the grace of §8 both extend a transaction, so the ceiling binds sooner — but the reverse train is also what carries the proof Channel is waiting for, so the round trip it must fit inside is one detour rather than two. The bound holds only if a transaction at its ceiling fits inside Channel's budget at the <em>measured</em> turnaround of §14.7, which is not yet settled. If it does not, the declared-bitrate route above is the remaining answer.</p>
+</section>
+
+<section id="s13">
+<h2><span class="n">§13</span><span>Where it does not apply</span></h2>
+<div class="rule"></div>
+<ul>
+<li><strong>Interfaces with an access code configured.</strong> The frame is masked end to end — flags, hops, addresses and context byte alike — so the modem cannot read an address and has nothing to match. SUPE degrades to plain main-channel operation.</li>
+<li><strong>Peers that have not announced themselves.</strong> A node becomes a SUPE peer by its SUPE_ANNOUNCE2 being heard, and nothing else. Traffic to anything else takes the main channel untouched, so a mixed segment needs no detection and no fallback — the absence of an announcement is the whole of it. The decaying counter is for something narrower: a peer that has announced but stops answering requests.</li>
+</ul>
+</section>
+
+<section id="s14">
+<h2><span class="n">§14</span><span>Regimes</span></h2>
+<div class="rule"></div>
+<p>A regime is the complete set of constants two nodes must hold identically in order to meet at all: the channels, the ladder, the sync words, the timings, the ceilings and the limits. §3 gives the reason none of it can be configuration. This chapter is that content, and it is normative — an index on the wire means whatever the table here says it means, for the version named in the frame that carried it.</p>
+<p><strong>Channel 0 is the hailing frequency in every regime.</strong> It is where the interface's own configuration lands (§3). A regime-1 GRANT must not name it; a regime-0 GRANT always does, because regime 0 has nothing else and changes only the modulation. That is the whole difference between the two regimes at the wire level.</p>
+
+<h3 id="s141"><span class="n">§14.1</span><span>Regime 0 — Single Channel</span></h3>
+<p>One frequency, one bandwidth, and the spreading factor as the only thing that moves — the whole protocol on the channel the network already hails on. It needs no channel plan and therefore no regulatory band plan, which is what makes it the regime a network can run anywhere, and what makes it the floor every node supports (§3).</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Constant</th>
+<th>Value</th>
+</tr></thead><tbody>
+<tr>
+<td>name</td>
+<td>Single Channel</td>
+</tr>
+<tr>
+<td>version</td>
+<td class="num">0</td>
+</tr>
+<tr>
+<td>expires</td>
+<td>set at build time, no more than 14 days ahead (§3)</td>
+</tr>
+<tr>
+<td>channels</td>
+<td>one: channel 0, the hailing frequency</td>
+</tr>
+<tr>
+<td>ladder</td>
+<td>the spreading factors above the hailing one, at the hailing bandwidth</td>
+</tr>
+<tr>
+<td>budgets available</td>
+<td>to the lowest spreading factor both radio families reach — from an SF7 network, two where both are SX126x and <strong>none where either is SX127x</strong>, whose first entry would be the barred SF6; slower-hailing networks reach further before that bites (§14.3)</td>
+</tr>
+<tr>
+<td>sync word, budget 0</td>
+<td>the interface's own</td>
+</tr>
+<tr>
+<td>sync word, above 0</td>
+<td><code>0x67</code>; <code>0x21</code> where an entry lands on SF5</td>
+</tr>
+<tr>
+<td>train ceiling</td>
+<td>none of its own — see below</td>
+</tr>
+<tr>
+<td>transaction ceiling</td>
+<td>none of its own — see below</td>
+</tr>
+<tr>
+<td>duration encoding</td>
+<td>20 ms steps, which bounds a transaction at 5.1 s regardless</td>
+</tr>
+<tr>
+<td>transmit power</td>
+<td>the interface's <code>tx_power</code></td>
+</tr>
+<tr>
+<td>airtime accounting</td>
+<td>none</td>
+</tr>
+</tbody></table></div>
+<p><strong>Regime 0 states no ceilings of its own, and must not invent any.</strong> It has no band plan and therefore no regulatory basis to draw them from — it runs on the hailing channel, whose limits belong to whatever regime that network is operating under, and which SUPE does not own (§3). Where that basis is a duty cycle there is no maximum transmission time at all, and a fabricated figure would be a limit nobody imposed. What still bounds a detour is arithmetic rather than regulation: the duration byte reaches 5.1 s at 20 ms a step, and MANIFEST's length byte reaches 1.275 s at 5 ms a step. Those are the real ceilings here, and they come from the field widths.</p>
+<p><strong>A regime-0 GRANT at budget 0 is a working answer.</strong> It names the hailing frequency at the hailing modulation, which sounds like no detour at all — and is exactly that. What it is <em>for</em> is the case where a node has nothing faster to offer but is present, willing, and has traffic of its own: the pair exchanges trains where they already stand, with the reverse direction and the measurements that come with it, and the only thing given up is the rate. That is also why this protocol needs no probe frame: a request answered is a peer proven present, at whatever rate the pair can manage.</p>
+
+<h3 id="s142"><span class="n">§14.2</span><span>Regime 1 — ETSI EN 300 220 (863–870 MHz)</span></h3>
+<div class="reg"><p><strong>Regulatory basis.</strong> ETSI EN 300 220-2 V3.2.1 annex B table B.1 for the harmonised non-specific short-range-device bands, their maximum effective radiated power and their duty cycles; EN 300 220-1 V3.1.1 clause 5.21 and table 48 for adaptive spectrum access, which every 863–870 MHz entry carrying a duty cycle permits in place of that duty cycle. <code>afa.md</code> §1 derives the plan below from them and is the reference for why the numbers are what they are.</p></div>
+<p><strong>Channels.</strong> Nine, uniform: 500 kHz, 25 mW, all on adaptive spectrum access, none crossing a band boundary, and at least 200 kHz of clear spectrum between any two edges — which is what keeps each channel's airtime budget independent of its neighbours'.</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>#</th>
+<th>Centre</th>
+<th>Span</th>
+<th>Band entry</th>
+</tr></thead><tbody>
+<tr>
+<td class="num">1</td>
+<td>863.350 MHz</td>
+<td class="num">863.100–863.600</td>
+<td>K</td>
+</tr>
+<tr>
+<td class="num">2</td>
+<td>864.050 MHz</td>
+<td class="num">863.800–864.300</td>
+<td>K</td>
+</tr>
+<tr>
+<td class="num">3</td>
+<td>864.750 MHz</td>
+<td class="num">864.500–865.000</td>
+<td>K</td>
+</tr>
+<tr>
+<td class="num">4</td>
+<td>865.450 MHz</td>
+<td class="num">865.200–865.700</td>
+<td>L</td>
+</tr>
+<tr>
+<td class="num">5</td>
+<td>866.150 MHz</td>
+<td class="num">865.900–866.400</td>
+<td>L</td>
+</tr>
+<tr>
+<td class="num">6</td>
+<td>866.850 MHz</td>
+<td class="num">866.600–867.100</td>
+<td>L</td>
+</tr>
+<tr>
+<td class="num">7</td>
+<td>867.550 MHz</td>
+<td class="num">867.300–867.800</td>
+<td>L</td>
+</tr>
+<tr>
+<td class="num">8</td>
+<td>868.250 MHz</td>
+<td class="num">868.000–868.500</td>
+<td>M</td>
+</tr>
+<tr>
+<td class="num">9</td>
+<td>868.950 MHz</td>
+<td class="num">868.700–869.200</td>
+<td>N</td>
+</tr>
+</tbody></table></div>
+<p>Channel 9 fills band N edge to edge, bounded on both sides by alarm allocations that are not available for this use. If out-of-band emission performance does not support it, the fallback is 250 kHz at the same centre, which costs peak rate on that channel and no airtime at all.</p>
+<div class="reg"><p><strong>The regulation fixes several of this protocol's constants directly</strong>, and they are not free parameters:</p></div>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Constant</th>
+<th>Value</th>
+<th>Source</th>
+</tr></thead><tbody>
+<tr>
+<td>train ceiling</td>
+<td>1 s</td>
+<td>Ton_max, single transmission</td>
+</tr>
+<tr>
+<td>transaction ceiling</td>
+<td>4 s</td>
+<td>Ton_max, dialogue or polling sequence</td>
+</tr>
+<tr>
+<td>airtime per channel</td>
+<td>100 s in any 3600 s</td>
+<td>max Tcum_on, for any given 200 kHz of spectrum</td>
+</tr>
+<tr>
+<td>minimum gap before reusing a frequency</td>
+<td>100 ms</td>
+<td>Toff_min, same operating frequency</td>
+</tr>
+<tr>
+<td>clear-channel threshold</td>
+<td>−75 dBm at 500 kHz, −81 dBm at 125 kHz</td>
+<td>table 45, referenced to 0 dBd</td>
+</tr>
+<tr>
+<td>maximum radiated power</td>
+<td>25 mW e.r.p. (14 dBm)</td>
+<td>annex B table B.1</td>
+</tr>
+<tr>
+<td>minimum listen before transmitting</td>
+<td>160 µs</td>
+<td>minimum CCA interval</td>
+</tr>
+<tr>
+<td>minimum deferral before listening again</td>
+<td>160 µs, equal to the interval above</td>
+<td>minimum deferral period</td>
+</tr>
+<tr>
+<td>maximum gap from a clear reading to transmitting</td>
+<td>5 ms, declared</td>
+<td>dead time</td>
+</tr>
+</tbody></table></div>
+<p><strong>The transaction ceiling is what covers both directions.</strong> A transaction here is a dialogue by the regulation's own definition — two nodes alternating on one frequency — which is precisely what the 4 s figure is for, and it comfortably holds two 1 s trains plus their turnarounds. The 1 s single-transmission figure still binds each train separately.</p>
+<p><strong>Airtime is a budget and a window, not a percentage.</strong> A regime records the pair — here 100 s in any 3600 s — rather than a duty figure, because the pair is what travels. European polite spectrum access is <code>100 / 3600</code>, a European duty cycle is <code>360 / 3600</code>, and North American frequency-hopping dwell is <code>0.4 / 20</code>: three regulatory shapes, one field pair, and no special case in the code that reads it. A percentage would express the first two and lose the third entirely.</p>
+<p><strong>A power limit without its reference is not a limit.</strong> The figure above is 25 mW <em>effective radiated power</em> — not effective isotropic radiated power, and not conducted power at the connector. The three differ by the antenna's gain and by 2.15 dB between the two radiated forms, so a table that records a number without saying which is being measured is a compliance failure no functional test will catch. Any regime added later carries the reference alongside the number.</p>
+<p><strong>The channel cap binds the frame, and the frame states what it did.</strong> A node configured to transmit at 22 dBm transmits at 14 on these channels, and every power field in every frame it sends from there states 14 (§0.1). This is not a detail: a node that states its configured power while transmitting at the capped one hands its peer a path-loss figure wrong by exactly the difference, in the direction that makes the link look better than it is, and the peer then chooses a budget and a power on that basis.</p>
+<p>Three further consequences worth naming. The 100 ms minimum gap before returning to a frequency is why the answering node must not grant a channel it has just used, and why it tracks its own recent grants. The 100 s/h budget is per channel rather than per band precisely because of the 200 kHz separation above, which is what the accounting in §14.4 must track. And the duration byte is quantised at 20 ms rather than finer because its range has to reach 4 s.</p>
+
+<h3 id="s143"><span class="n">§14.3</span><span>The ladder, and how a budget resolves</span></h3>
+<p>This section is normative and admits no floating-point arithmetic anywhere. Two implementations that resolve a budget differently do not fail loudly — they set different spreading factors and the link simply dies, with no error surface anywhere. Every rule below is stated over integers for that reason, and §14.3.4 gives the conformance test.</p>
+
+<h3 id="s1431"><span class="n">§14.3.1</span><span>What the ladder contains</span></h3>
+<p>Given the answering node's family, the requesting node's family, the hailing spreading factor and bandwidth, and the maximum bandwidth the named channel permits, an entry <code>(sf, bw)</code> is in the ladder if and only if all of:</p>
+<ul>
+<li><code>bw</code> is one of the regime's permitted bandwidths</li>
+<li><code>bw ≥ hail_bw</code> and <code>bw ≤ channel_max_bw</code></li>
+<li><code>sf ≤ hail_sf</code></li>
+<li><code>sf ≥ 7</code>, <strong>or</strong> both families reach <code>sf</code> per §14.6</li>
+<li><code>sf ≠ 6</code> unless <strong>both</strong> families are able to frame SF6 with an explicit header, which excludes SX127x (§14.6)</li>
+<li>in regime 0 only, <code>bw = hail_bw</code></li>
+</ul>
+<p>The entry <code>(hail_sf, hail_bw)</code> is always in the ladder and is always index 0. It satisfies the rules above by construction.</p>
+
+<h3 id="s1432"><span class="n">§14.3.2</span><span>How it is ordered</span></h3>
+<p>By this key, computed in unsigned integer arithmetic with bandwidth in hertz:</p>
+<div class="formula">key(sf, bw) = (bw × sf) &gt;&gt; sf</div>
+<p>ascending. That is the net bitrate up to a constant factor, and the shift is an exact division because the divisor is a power of two. Nothing is rounded, no coding-rate term appears — it is identical for every entry and cannot change an ordering — and the products fit in 32 bits for every bandwidth this protocol permits.</p>
+<p>Ties break toward the <strong>narrower bandwidth</strong> first, then toward the <strong>higher spreading factor</strong>. Both preferences point the same way: at equal rate, take the entry with more margin. Ties are rare but the rule is not optional, because sort stability is not a property an implementation may assume of another implementation.</p>
+
+<h3 id="s1433"><span class="n">§14.3.3</span><span>What an index means</span></h3>
+<p>The budget nibble is an index into the ordered ladder above. Index 0 is the hailing configuration; index <em>k</em> is <em>k</em> places up. An index beyond the end of the ladder, or above either node's ceiling nibble, is invalid and the frame carrying it is discarded.</p>
+<p><strong>The answering node resolves before it grants, and the requester resolves after it hears.</strong> Both hold every input: family from the START and from the GRANT's own sender, hailing configuration from the channel they are both camped on, maximum bandwidth from the channel index in the same byte as the budget. There is nothing left to infer and nothing to signal.</p>
+<p>Ordered from the SF7/BW125 that most networks hail on, on a 500 kHz channel with both nodes on SX126x, with each entry's cost in margin against that reference:</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Index</th>
+<th>Configuration</th>
+<th><code>key</code></th>
+<th>Net bitrate</th>
+<th>Margin cost</th>
+</tr></thead><tbody>
+<tr>
+<td class="num">0</td>
+<td>SF7 / BW125</td>
+<td class="num">6 835</td>
+<td>5 469 bps</td>
+<td>reference</td>
+</tr>
+<tr>
+<td class="num">1</td>
+<td>SF6 / BW125</td>
+<td class="num">11 718</td>
+<td>9 375 bps</td>
+<td>2.5 dB</td>
+</tr>
+<tr>
+<td class="num">2</td>
+<td>SF7 / BW250</td>
+<td class="num">13 671</td>
+<td>10 938 bps</td>
+<td>3.0 dB</td>
+</tr>
+<tr>
+<td class="num">3</td>
+<td>SF5 / BW125</td>
+<td class="num">19 531</td>
+<td>15 625 bps</td>
+<td>5.0 dB</td>
+</tr>
+<tr>
+<td class="num">4</td>
+<td>SF6 / BW250</td>
+<td class="num">23 437</td>
+<td>18 750 bps</td>
+<td>5.5 dB</td>
+</tr>
+<tr>
+<td class="num">5</td>
+<td>SF7 / BW500</td>
+<td class="num">27 343</td>
+<td>21 875 bps</td>
+<td>6.0 dB</td>
+</tr>
+<tr>
+<td class="num">6</td>
+<td>SF5 / BW250</td>
+<td class="num">39 062</td>
+<td>31 250 bps</td>
+<td>8.0 dB</td>
+</tr>
+<tr>
+<td class="num">7</td>
+<td>SF6 / BW500</td>
+<td class="num">46 875</td>
+<td>37 500 bps</td>
+<td>8.5 dB</td>
+</tr>
+<tr>
+<td class="num">8</td>
+<td>SF5 / BW500</td>
+<td class="num">78 125</td>
+<td>62 500 bps</td>
+<td>11.0 dB</td>
+</tr>
+</tbody></table></div>
+<p>Both columns increase monotonically and no entry is dominated, which is what makes an index meaningful rather than a lookup (§3). The margin figures come from Semtech's required-SNR values and are what turn a measured path loss into a budget choice; <code>afa.md</code> §3 carries their derivation.</p>
+<p>The same inputs with a 250 kHz channel maximum give a five-entry ladder — indices 0 to 4 of the table above, with SF5/BW250 at the top — and index 5 is then invalid rather than meaning something else. This is the ambiguity §3 describes, and it is resolved by the channel and the budget always travelling in the same byte.</p>
+<p><strong>A pair including an SX127x has a ladder of bandwidth changes only.</strong> That family reaches no SF5 at all, and SF6 there demands an implicit header, which no framing in this protocol supplies (§14.6). Strike both and what remains from SF7/BW125 on a 500 kHz channel is SF7/BW250 and SF7/BW500: two entries, 2× and 4× the rate, at 3.0 dB and 6.0 dB. The consequence for regime 0 is blunter — it cannot change bandwidth, so <strong>an SX127x pair hailing at SF7 has no entries above 0 under regime 0</strong>. A slower-hailing network is unaffected until the ladder reaches SF6: from SF8 such a pair has one, from SF9 two. Where there are none, budget 0 is still a valid grant (§14.1) and still carries the reverse direction and the measurements; it simply carries them at hailing rate.</p>
+<p><strong>A budget costs reach as well as margin.</strong> The margin column says what the link has to give up; what it buys is rate, and what it spends is coverage. From SF7/BW125 to SF5/BW500 is 11.02 dB — 6.02 dB of it from four times the bandwidth and 5 dB from the demodulator's signal-to-noise limit — which puts the fastest entry's reach between 28 % of the hailing channel's in free space and 53 % at a path-loss exponent of 4, so roughly half in practice. A peer at the edge of hearing therefore has no budget at all, and the ladder is a facility for the near population. That is the population a node exchanges most of its traffic with, which is why this is a tolerable shape rather than a limitation.</p>
+<p><strong>Low-data-rate optimisation is part of what an index resolves to</strong>, not a local choice: both ends must set it identically or neither decodes. It is compulsory wherever a symbol lasts longer than 16 ms, which is <code>2^SF / BW &gt; 16 ms</code> —</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Configuration</th>
+<th>Symbol</th>
+<th>Optimisation</th>
+</tr></thead><tbody>
+<tr>
+<td>SF11 / BW125</td>
+<td>16.4 ms</td>
+<td>on</td>
+</tr>
+<tr>
+<td>SF12 / BW125</td>
+<td>32.8 ms</td>
+<td>on</td>
+</tr>
+<tr>
+<td>SF12 / BW250</td>
+<td>16.4 ms</td>
+<td>on</td>
+</tr>
+<tr>
+<td>everything faster</td>
+<td>under 16 ms</td>
+<td>off</td>
+</tr>
+</tbody></table></div>
+<p>It exists to keep a receiver locked when the crystals at each end drift measurably within one symbol, and it pays for that by carrying two bits fewer per symbol — which is why it appears in the airtime arithmetic of §3 as <code>DE</code>. A network hailing at SF11 or SF12 therefore starts with it on and may switch it off partway up the ladder; the rule above decides that, from the resulting configuration, on both sides, with nothing transmitted.</p>
+
+<h3 id="s1434"><span class="n">§14.3.4</span><span>Conformance</span></h3>
+<p>Prose cannot be executed and two careful readings of it can still differ. An implementation is conformant with this section if and only if it reproduces <code>supe-ladder-vectors.txt</code> exactly, over the full cross-product of:</p>
+<ul>
+<li>requesting family and answering family, over every value in §14.6</li>
+<li>hailing spreading factor 5 through 12</li>
+<li>hailing bandwidth over every permitted value</li>
+<li>channel maximum bandwidth over every permitted value</li>
+<li>regime 0 and regime 1</li>
+</ul>
+<p>Each line gives the inputs, the ladder length, and every <code>(index, sf, bw, low_data_rate, sync_word)</code> it resolves to. The file is generated from the rules above and is the authority when it and a reading of the prose disagree.</p>
+<p>This is the same discipline a cryptographic test vector serves, and for the same reason: the failure being guarded against is silent divergence between two independent implementations, which no amount of care in either one can detect.</p>
+
+<h3 id="s144"><span class="n">§14.4</span><span>Airtime accounting</span></h3>
+<p>Where a regime states an airtime budget, a node has to be able to answer whether it has spent it. <strong>This section states the property that answer must have, not the structure that produces it</strong> — the structure is an implementation's own business, and every implementation already has an airtime figure of some shape that this must not be confused with.</p>
+<p>Four requirements, and all four are load-bearing:</p>
+<ul>
+<li><strong>The transmit path reads a verdict, not an arithmetic result.</strong> "May I transmit on this channel" is precomputed, per channel, and looked up. A budget summed at the moment of transmitting puts a loop on the path that most needs to be short.</li>
+<li><strong>It is fed unconditionally</strong>, not gated on anything being displayed, recorded or watched. A figure that exists only while somebody is looking at it cannot defend a cap.</li>
+<li><strong>Every transmission is counted, including ones that achieved nothing</strong> — an aborted train, a GRANT nobody heard, a frame cut short. The regulation counts emissions, not successes.</li>
+<li><strong>It errs by no more than the margin the effective cap absorbs.</strong> Whatever the recomputation interval, the verdict may be that interval stale, so the effective cap is set below the legal one by at least what can be spent in it. Set that way, coarse bins are free: the cap is approached slowly and the error cannot cross it.</li>
+</ul>
+<p>A ring of 10-second buckets, one per channel, satisfies all four — 360 buckets to the hour at 16 bits of milliseconds each is 7.2 kB for ten channels, credited at transmit-done with the time on air the radio already computes, recomputed once per bucket. It is a good answer and not the only one. What it is not is a reinterpretation of a coarser total kept for some other purpose: a structure that ages whole buckets out of a short history lets the budget be spent late in one bucket, aged out, and spent again, which approaches twice the cap inside a true window. Defending a cap wants a structure chosen to defend it.</p>
+<p><strong>The answering node reads this table before it grants</strong>, which is what makes it the right chooser: it is the only node that knows its own remaining budget per channel and its own 100 ms reuse gaps. A grant that would breach either is not made, and if no channel is available the answer is a refusal with the reason (§6), not silence.</p>
+
+<h3 id="s145"><span class="n">§14.5</span><span>Sync words</span></h3>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Where</th>
+<th>Word</th>
+<th>Why</th>
+</tr></thead><tbody>
+<tr>
+<td>hailing channel</td>
+<td>the interface's <code>sync_word</code>, <code>0x42</code> by convention</td>
+<td>that channel belongs to the Reticulum network, not to SUPE (§3)</td>
+</tr>
+<tr>
+<td>any detour, except</td>
+<td class="num"><code>0x67</code></td>
+<td>furthest from <code>0x12</code> and from LoRaWAN's <code>0x34</code> that the space allows</td>
+</tr>
+<tr>
+<td>a budget landing on SF5</td>
+<td class="num"><code>0x21</code></td>
+<td>SF5's 32 bins admit no nibble above 3; this is the best of the nine words that fit, and SF5 is empty of other networks (§3)</td>
+</tr>
+</tbody></table></div>
+<p>A regime-0 detour at budget 0 stays on the hailing frequency at the hailing modulation and therefore keeps the interface's own sync word — it is not off the channel in any sense the sync word cares about. Every budget above 0 takes <code>0x67</code> or <code>0x21</code> even in regime 0, which is what separates a detour's train from the shared channel's traffic while both occupy the same frequency.</p>
+
+<h3 id="s146"><span class="n">§14.6</span><span>Radio families</span></h3>
+<p>The family nibble names what a peer's silicon can do, in the few respects that change what goes on the air. The ceiling nibble beside it already says how far up the ladder a node will go; family exists for the things a ceiling cannot express — chiefly that one family reaches no lower than SF6, and frames it there differently from everyone else.</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Value</th>
+<th>Family</th>
+<th>Parts</th>
+<th>Spreading factors</th>
+<th>On the air</th>
+</tr></thead><tbody>
+<tr>
+<td class="num">0</td>
+<td>SX126x</td>
+<td>SX1261, SX1262, SX1268, LLCC68</td>
+<td class="num">5–12</td>
+<td>the reference case; nothing special</td>
+</tr>
+<tr>
+<td class="num">1</td>
+<td>SX127x</td>
+<td>SX1272, SX1276, SX1277, SX1278</td>
+<td class="num">6–12</td>
+<td><strong>no SF5 at all</strong>, and SF6 carries an implicit header, so an entry landing there needs a fixed frame length agreed in advance (§16)</td>
+</tr>
+<tr>
+<td class="num">2</td>
+<td>SX128x</td>
+<td>SX1280, SX1281, SX1282</td>
+<td class="num">5–12</td>
+<td>2.4 GHz only, and 203/406/812/1625 kHz bandwidths — no overlap with a 863–870 MHz regime, so it can only appear under a regime of its own</td>
+</tr>
+<tr>
+<td class="num">3</td>
+<td>LR11x0</td>
+<td>LR1110, LR1120, LR1121</td>
+<td class="num">5–12</td>
+<td>as SX126x for these purposes</td>
+</tr>
+<tr>
+<td class="num">4</td>
+<td>LR2021</td>
+<td>LR2021</td>
+<td class="num">5–12</td>
+<td>as SX126x for these purposes</td>
+</tr>
+</tbody></table></div>
+<p>Both rules that follow are the <strong>answering node's</strong> to apply, because it is the node that chooses:</p>
+<ul>
+<li><strong>Every entry in the ladder must be reachable by both</strong>, which §14.3.1 states as a membership rule rather than as a check afterwards. A pair of SX126x nodes on an SF7 network has eight entries above 0 on a 500 kHz channel; a pair including an SX127x has two, and under regime 0 none.</li>
+<li><strong>SF6 is not offered where either side is family 1.</strong> It demands an implicit header there, and no framing in this protocol supplies the fixed length that would need. §16 carries the exception that would recover it.</li>
+</ul>
+<p>The nibble holds sixteen values against five families, which is room enough that a new part gets a number rather than a compatibility rule.</p>
+
+<h3 id="s147"><span class="n">§14.7</span><span>Turnaround, retune and deadlines</span></h3>
+<p>Every deadline in this protocol is derived from two constants and a time on air. Both constants are regime constants (§3) and both are currently estimates rather than measurements — the open item that most wants <code>simulation.md</code>, because a bench measurement of them needs instrumentation we do not have and a simulator charges them by construction.</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Constant</th>
+<th>Value</th>
+<th>What it is</th>
+</tr></thead><tbody>
+<tr>
+<td>turnaround</td>
+<td>25 ms</td>
+<td>The longest a node may take between the end of a frame it is answering and the start of its answer, on the same channel and configuration. It is what a GRANT must beat after a START, and what a MANIFEST must beat after a train.</td>
+</tr>
+<tr>
+<td>retune gap</td>
+<td>1 ms</td>
+<td>The interval both sides observe between the last frame on one channel and the first frame on another. It exists to cover the synthesizer, not the software.</td>
+</tr>
+<tr>
+<td>guard</td>
+<td>10 ms</td>
+<td>Slack added to every derived deadline, absorbing scheduling jitter at both ends.</td>
+</tr>
+<tr>
+<td>per-packet overhead</td>
+<td>16 bytes</td>
+<td>What a packet's preamble and header cost, expressed in payload bytes, for the load field of SUPE_START (§6). Not a timing constant, but the same kind of thing: a figure both ends must charge identically or they will size the same queue differently.</td>
+</tr>
+</tbody></table></div>
+<p><strong>The retune gap is deliberately small, and the reason is that the silicon is fast.</strong> A synthesizer hop on an SX1261/2 is 30 µs, a full wake from standby about 150 µs, and the transmit-receive switch under 600 ns (datasheet table 3-7); the power-amplifier ramp is 10 µs to 3.4 ms depending on how it is configured. All of that is microseconds, and the BUSY line signals readiness directly, so a driver that waits on it is already correct without any interval at all. The millisecond is there for the scheduling gap between a completion interrupt and the task that acts on it, not for the radio — and it is paid twice per detour, which is why it is not padded.</p>
+<p><strong>The turnaround is generous, and the reason is that it is free.</strong> It appears only inside deadlines: a node that answers in 3 ms is not penalised for the constant being 25, and no airtime is spent on it by anybody. What it buys is tolerance for a responder whose radio task is behind a storage commit or a display update. Shrinking it would tighten the deadlines and gain nothing, because nothing waits out a turnaround that has already been satisfied.</p>
+<p>The deadlines that follow, all derived and none transmitted:</p>
+<div class="tablewrap"><table>
+<thead><tr>
+<th>Waiting for</th>
+<th>Armed at</th>
+<th>Deadline</th>
+</tr></thead><tbody>
+<tr>
+<td>GRANT, on the main channel</td>
+<td>end of the START</td>
+<td><code>turnaround + toa(GRANT, hailing) + guard</code></td>
+</tr>
+<tr>
+<td>first MANIFEST, on the detour</td>
+<td>end of the GRANT</td>
+<td><code>retune_gap + turnaround + toa(MANIFEST, budget) + guard</code></td>
+</tr>
+<tr>
+<td>reverse MANIFEST, on the detour</td>
+<td>end of the sender's train</td>
+<td><code>turnaround + toa(MANIFEST, budget) + guard</code></td>
+</tr>
+<tr>
+<td>a further MANIFEST after a grace</td>
+<td>end of the grace MANIFEST</td>
+<td>the <code>length</code> that MANIFEST stated, plus <code>guard</code></td>
+</tr>
+</tbody></table></div>
+<p>Every one of them is computable by both sides from the frames already exchanged, which is what lets a failure be a silent return rather than a negotiation.</p>
+</section>
+
+<section id="s15">
+<h2><span class="n">§15</span><span>Adaptive transmit power</span></h2>
+<div class="rule"></div>
+<p>Part of SUPE, gated on <code>SUPE.adaptive_txpower</code>, and applying to unicast only: SUPE_START, every frame inside a detour, and any packet sent plainly to a single peer. Never to anything broadcast — announces and path requests.</p>
+<p><strong>SUPE_GRANT is never adapted, and SUPE_START always is.</strong> The two look alike and are not. A GRANT is the frame every third party holds traffic on and measures path loss from, so its reach is the reach of the hint, and it goes out at maximum. A START is addressed to one node and nothing depends on strangers hearing it — the GRANT it draws carries the hold — so it is the natural power probe, and §11's absence ladder is that probe run to conclusion: each retry at more power, the last at maximum. A peer that answers only the third request has told the controller exactly where the cliff is, on frames it was going to spend anyway.</p>
+<p><strong>Maximum means the node's configured <code>tx_power</code>, capped by the channel's regulatory limit, never the radio's ceiling.</strong> The range this controller works in is bounded above by the lower of those two and below by what the part can do, so a radio held to 14 dBm on a channel that permits 14 stays there and simply has a shorter run to walk. Nothing here may raise a node above either bound, under any failure, for any reason.</p>
+<p><strong>Start at the top and walk down on evidence.</strong> The controller's initial power for a peer it has never adapted to is the configured maximum, not a computed value.</p>
+<p><strong>Do not compute an absolute power from a path loss and a modelled sensitivity.</strong> It produces plausible arithmetic and implausible answers: a 49 dB path loss against a −121 dBm modelled sensitivity and 10 dB of margin gives −62 dBm, which is nonsense, and the only thing between that and a dead link is a floor constant. A floor doing that much work is not a safety net, it is the design. The measured term is real; the modelled one is not, and a controller that treats them alike fails silently and completely. §14.3's insistence on integer rules over formulas guards the same hazard in a different place.</p>
+<p><strong>Power is derived from a learned offset, never stored as an absolute:</strong></p>
+<div class="formula">power = clamp( maximum − offset , floor , maximum )</div>
+<p>where <code>offset</code> starts at zero and only ever moves on evidence about <em>this</em> peer. The measured path loss and the entry's margin cost (§14.3) inform how large a step to take and where to stop, but they do not set the power directly — they bound the search rather than replacing it.</p>
+<ul>
+<li><strong>Failure raises the power fast.</strong> A single miss cuts the offset by about 6 dB; a peer that has gone silent goes straight back to maximum. Being wrong downward costs connectivity, so recovery is immediate and large.</li>
+<li><strong>Success lowers it slowly</strong>, 1–2 dB, so any overshoot past the cliff is small and the next failure recovers it.</li>
+<li><strong>The decrement is gated on evidence, not time.</strong> Require a number of successful exchanges with <em>that</em> peer since the last change. "Nothing went wrong lately" means nothing if nothing was sent, and a controller that dials down on a timer will walk a quiet link into the ground.</li>
+<li><strong>Where it broke is remembered.</strong> After a failure at a given power, do not return below it plus a margin for a while, on a decaying floor. Without that the loop oscillates across the cliff instead of settling above it.</li>
+</ul>
+<p><strong>The reverse MANIFEST is what supplies the evidence this loop needs.</strong> A one-directional unacknowledged detour tells a sender nothing about whether its train landed, and a loop built on one has to lean on Reticulum's own delivery signals, which arrive late and only for traffic that is proved at all. Here every transaction ends with the peer's MANIFEST, which both proves the train arrived and states the level it arrived at (§10). That is a complete round trip with a measurement in it, on every detour, at no cost — which is what makes walking the offset down safe enough to do at all.</p>
+<ul>
+<li><strong>The peer's MANIFEST comes back, reporting good margin</strong> — the power suffices and there is room. Sustained, this walks the offset up.</li>
+<li><strong>The peer's MANIFEST comes back reporting thin margin</strong> — hold, do not reduce.</li>
+<li><strong>No MANIFEST</strong> — the power may have been too low, or the peer may be gone. Raise immediately, record the failed power in the floor, and do not distinguish the two cases: both want more power next time.</li>
+<li><strong>No GRANT, then a GRANT one rung up the ladder</strong> — §11's escalation, read as a power measurement. The rung that succeeded is the floor plus a margin; the rungs that did not are below it. This is the cleanest reading the controller ever gets, because nothing else varies between the attempts.</li>
+<li><strong>No GRANT even at maximum</strong> — the peer is absent (§11) and nothing about power is learned. Do not move the offset on this.</li>
+</ul>
+</section>
+
+<section id="s16">
+<h2><span class="n">§16</span><span>Open items</span></h2>
+<div class="rule"></div>
+<ul>
+<li><strong>Turnaround and retune, measured rather than assumed</strong> (§14.7). They set every deadline in the protocol, and with them how cheap a failed request is. The measurement wants the responder's received-to-retuned-to-armed path on the timer route rather than the task route, and it is the first thing <code>simulation.md</code> should be pointed at.</li>
+<li><strong>The grace of §8, and whether it earns its complexity.</strong> Count 0 with a nonzero length is the one place a node waits for something it cannot compute. It exists because a delivery proof takes a daemon round trip to appear and a protocol that stalls for one would otherwise pay for a second detour — but how long that round trip actually takes, and how often the grace pays, are both unmeasured. Simulate before trusting.</li>
+<li><strong>A fixed-length framing exception for SF6 on family 1.</strong> SF6 demands an implicit header on SX127x (<code>afa.md</code> §4.1), so the protocol skips it and leaves such pairs with bandwidth entries alone — and, on a network hailing at SF7, with nothing at all under regime 0 (§14.3). An exception carrying a length agreed in advance would recover a spreading-factor entry for every pair including an SX127x.</li>
+<li><strong>Out-of-band emission performance, and whether channel 9 can be 500 kHz.</strong> The channel fills band N edge to edge between two alarm allocations (§14.2), so what decides it is the skirt of a 500 kHz LoRa signal against the out-of-band limits at 868.6 and 869.2 MHz — not the far-field spurious limits that dominate most compliance work. Two things to establish and neither is settled here: what the part's datasheet states for transmitter spectral performance and what filtering the reference designs assume to meet EN 300 220-1; and which clause the band-edge limit actually falls under. The fallback is already known — 250 kHz at the same centre — so this decides only whether the fallback is needed.</li>
+<li><strong>Preamble handling when a budget lands on SF5 or SF6.</strong> Both have modified preamble and sync behaviour on the SX126x; confirm <code>0x21</code> at SF5 and <code>0x67</code> at SF6 land as §3's arithmetic says. The bin arithmetic is settled; the silicon's treatment of it wants checking.</li>
+<li><strong>Regime 1.</strong> Whether hailing and detour traffic land in one duty budget or two.</li>
+<li><strong>The reference count on tag entries.</strong> Three bytes with a thousand live entries collides internally often enough to matter; confirm a count is enough and that nothing needs the full address kept alongside.</li>
+<li><strong>Refusal reasons.</strong> The channel nibble carries one when the budget nibble is 15 (§6), and the set is not yet fixed. It wants to be small and to map cleanly onto backoff durations, since that is the only thing a requester does with it.</li>
+</ul>
+</section>
+
+<section id="s17">
+<h2><span class="n">§17</span><span>Deferred</span></h2>
+<div class="rule"></div>
+<ul>
+<li><strong>Multi-round transactions.</strong> More than one train each way inside a single detour, beyond the grace of §8. The frames already support it — a MANIFEST with a nonzero count may follow any other — but the ceilings, the fairness against third parties holding traffic, and the interaction with §12's bound all want thinking about before it is allowed.</li>
+<li><strong>Repair.</strong> If a train is repeated at all, the hashes belong in the <em>receiver's</em> MANIFEST after the fact, not in the sender's beforehand — and only when the count, or a checksum over the whole train, disagrees. A manifest that listed a hash per packet would spend airtime on every successful train to serve the rare failed one, which is backwards. The reverse MANIFEST is the frame this would live in, so the structural obstacle is gone and only the decision remains.</li>
+<li><strong>Destination-scoped proof returns.</strong> Naming the destination a proof belongs to rather than the packet hash, so a burst of messages to one destination collapses to a single table entry. It costs precision — the destination's owner and every other recent sender wake too — so it is only worth doing if pending-proof entries become a real memory pressure. They are eight bytes and short-lived, so probably not.</li>
+<li><strong>Remembering which channels work, per peer.</strong> This belongs entirely to the answering node, which is the one that chooses. Two halves: what it knows about itself — an optional bitmask in the capabilities marking channels that never work where it stands, persistent local interference on part of the band, a warehouse interrogating tags, a neighbour's equipment parked on one frequency — and what it observes, which channels have carried a detour to this peer and which have only ever produced silence. Both want a rule for how a channel is judged bad, and how that judgement is forgotten.</li>
+<li><strong>Holding traffic briefly</strong> for addresses suspected to be away on someone else's detour.</li>
+<li><strong>Re-arming the hint during a long detour.</strong> One short frame from a third party, restating that the tag is away until T, for nodes that missed the GRANT. Wants a rule for which third party sends it and for stopping before the pair returns.</li>
+<li><strong>Occupying the medium while a peer is away</strong>, so nodes that cannot hear the hint defer instead of transmitting into a deaf receiver. Pays clearly in a star around one gateway, where everything in earshot is addressed to the absent node. Cheap forms are indistinguishable from jamming, and a second radio (§18) solves the same problem outright, so this is the single-radio gateway's workaround and nothing more. Not to be built without simulating it first.</li>
+<li><strong>Asymmetric configurations</strong> per direction. Both directions being measured on every detour (§10) makes this plausible for the first time — but both trains share one channel and one modulation, and splitting them means two retunes inside a transaction.</li>
+<li><strong><code>sender_ident</code> in the transmitting form</strong> (§4).</li>
+</ul>
+</section>
+
+<section id="s18">
+<h2><span class="n">§18</span><span>What this protocol assumes of an implementation</span></h2>
+<div class="rule"></div>
+<p>SUPE is a wire protocol and this document is not an architecture. But three implementation properties are load-bearing enough that getting them wrong makes the protocol behave badly on air rather than merely making the code awkward, and they are stated here for that reason alone.</p>
+<p><strong>Detour airtime is accounted separately from the hailing channel's.</strong> §8's compounding argument, and the whole claim that a detouring node stays cheap, depends on it. Credit a detour's transmissions against the hailing channel's duty figure and the effect vanishes silently, with nothing failing and nothing to see.</p>
+<p><strong>Whether to detour is one function, in one place.</strong> Its inputs are the peer, the queue and the channel; its output is <code>no</code>, <code>now</code>, or <code>wait until t</code>. The protocol deliberately does not specify it, because the right answer varies with traffic shape and nobody has measured it yet — §8's own break-even table shows a lone 19-byte packet losing while a 100-byte one wins by half. What the protocol does require is that the decision be <em>findable</em>: a policy scattered across a transmit path cannot be measured, cannot be replaced, and cannot be simulated. <code>simulation.md</code> §7 is written against exactly that signature.</p>
+<p><strong>A radio carrying a detour need not be the radio that hails.</strong> The deafness window of §11 exists only because one radio cannot be in two places. A node with a second radio in the same band can stay on its hailing channel throughout, and the protocol is entirely indifferent to which radio transmits what — nothing on the wire changes. What that costs an implementation is that a detour must ask for <em>a radio able to reach this channel</em> rather than assuming its own, which is a seam worth building before it is needed rather than retrofitting into a state machine that assumes otherwise. <code>SUPE.worker</code> (§4) marks a radio as available for this and presents no interface to the daemon; workers serve any hailing channel in their own band, and crossing bands is a routing problem rather than this protocol's.</p>
+</section>
+
+</main>
+
+<footer>
+  <p>SUPE is a link-layer protocol for Reticulum over LoRa. This document is the normative specification; <code>afa.md</code> and <code>psa.md</code> carry the derivations behind its constants, and <code>simulation.md</code> the harness meant to settle its open timings.</p>
+</footer>
+
+</div>
