@@ -10,7 +10,9 @@
 > than measurements, and every deadline here depends on the first.
 > [`simulation.md`](simulation.md) is where they are meant to be settled.
 >
-> `sender_ident` is specified but deferred (§4, §17).
+> `sender_ident` ships (§4). It is what makes the reverse leg possible at all,
+> and it is the one thing here that gives up sender anonymity, so it is a key
+> and not a constant.
 >
 > SUPE moves unicast traffic off the shared LoRa channel onto short private
 > high-rate detours, entirely inside the modem, with the Reticulum daemon
@@ -61,9 +63,11 @@ main channel (whatever this network hails on — the baseline for everything
           └─ a turnaround response inside the transaction: no carrier sense,
              no contention wait
           └─ everyone else: hold traffic addressed to tag for that duration
-          └─ no GRANT by the deadline → nobody answered. Two more tries with
-             more power and a lower ceiling, then the peer is absent and its
-             traffic is dropped for a minute (§11)
+          └─ nothing on the air when the GRANT was due to BEGIN → nobody
+             answered. The START goes out again inside this same request; if
+             that draws silence too, two more tries with more power and a lower
+             ceiling, then the peer is absent and its traffic is dropped for a
+             minute (§11)
 
         both retune, observing the retune gap of §14.7; the requester adds
         the manifest lead, so the answerer's receiver is armed first
@@ -578,7 +582,7 @@ ladder, no sync words, no durations, timings or limits. Those are regime constan
 | `s.lora.<n>.SUPE.adaptive_txpower` | on | Transmit to each neighbour at a power measured for it, per §15. Off means every frame goes out at `tx_power`. |
 | `s.lora.<n>.SUPE.announce_interval` | `30` | Minutes between a node's own SUPE announcements. It governs nothing else; Reticulum's announces are not SUPE's to schedule (§9). |
 | `s.lora.<n>.SUPE.worker` | off | This radio does not present an interface to the daemon and is instead available to carry detours for any radio in the same band, so that radio can stay on its hailing channel. See §18. |
-| `s.lora.<n>.SUPE.sender_ident` | off — **deferred** | Name ourselves in every SUPE_START, so neighbours hold traffic for us as well as for the peer we are servicing (§6). Costs three bytes and one symbol group, and gives up the protocol's default anonymity. A gateway — the node most traffic is addressed to, and the one whose silent absence costs most — should turn it on. **The key ships with the transmitting form and not before**: the flag changes a START's length and therefore its hash, so an implementation parses and honours the ten-byte frame while never sending one, and a setting that governed nothing would be worse than no setting. |
+| `s.lora.<n>.SUPE.sender_ident` | on | Name ourselves in every SUPE_START. Costs three bytes and one symbol group, and gives up the protocol's default anonymity: a listener learns who is talking to whom, which no Reticulum header discloses. It buys three things, and the first is not optional in practice — **the reverse leg (§8) cannot exist without it**, since the tag a START carries is the *answerer's* address and says nothing about who is asking, so an unnamed requester's queued traffic at the far end is indistinguishable from a stranger's. It also lets neighbours hold traffic for us as well as for the peer we are servicing (§6), and lets the answerer file what our cargo establishes — a link identifier above all — against us rather than against nobody (§10). Off restores the anonymity and gives all three up; a node that turns it off still parses and honours the ten-byte frame from those that do not. |
 
 ## 5. Addresses that mean us
 
@@ -915,7 +919,17 @@ waited for either way.**
 There is no wait state anywhere in a transaction. Ping-pong traffic has its
 reverse leg — the proof of the previous packet, the next request — buffered
 before the transaction starts, which is why the flag can be declared in the
-GRANT at all; a reply that appears later opens its own transaction. Holding a
+GRANT at all; a reply that appears later opens its own transaction. The
+answering node can only recognise that buffered traffic as the requester's if
+the START named the requester, so `sender_ident` (§4) is what the reverse flag
+rests on: unnamed, every packet queued for that peer looks like a stranger's and
+the flag is never set.
+
+**Nothing is held back to wait for a ride.** A packet that could ride a
+transaction the peer might open — a proof above all — takes the channel on its
+own terms as soon as it can. The wait costs the far end its send window for as
+long as it lasts, and the ride it was waiting for carries it as reverse cargo
+whether or not it was holding out for one. Holding a
 pair on a private channel to wait for a daemon is waiting this protocol does
 not do.
 
@@ -1089,6 +1103,15 @@ Two bindings that save a slow first detour:
 - **Links inherit.** When the packet being sent is a link request, both sides
   compute the same link identifier independently and file everything under it, so
   all later traffic on that link opens at the peer's best budget.
+
+  The dialled side has to file it against the *node* as well, and the START's
+  sender identity is the only thing that lets it. A link request names nobody —
+  that is Reticulum's design — so a link dialled to us is otherwise anonymous,
+  and our whole side of the session, the link proof first, flies on the shared
+  channel until something else eventually names the pair. Arriving as a detour's
+  cargo it is not anonymous at all: the node that asked for the detour is the
+  node that dialled, so the identifier is filed against it as the cargo lands
+  and the very first frame back can detour.
 - **Relays file per packet.** A relay handling a packet that may attract a proof
   records the sender's capabilities and signal against the reverse-table entry,
   not against the tag — the tag that transaction opened on was the relay's own
@@ -1097,7 +1120,13 @@ Two bindings that save a slow first detour:
 ## 11. Failing well
 
 - **No GRANT by the deadline** — the peer is away on someone else's detour, did
-  not hear the START, or heard it and could not answer in time. **A START that
+  not hear the START, or heard it and could not answer in time. The three are
+  told apart at the *first* deadline, which expires when the GRANT must have
+  **begun** rather than when it must have arrived (§14.7): a frame on the air at
+  that instant is the answer being delivered, and only an idle channel is
+  silence. Silence there is answered by sending the START again, byte for byte
+  so its hash still names the same request, inside the same request and without
+  advancing anything below — no strike, no power step, no ceiling step. Once. **A START that
   draws no GRANT is the cheapest presence test this protocol has**, and it is what
   absence is concluded from: 31 ms of shared channel and a deadline, against
   roughly 760 ms to transmit a full packet into an empty room. Because the peer
@@ -1115,8 +1144,11 @@ Two bindings that save a slow first detour:
 
 - **The absence ladder, in full.** On a peer with no absence record:
 
-  1. **Request.** Silence, so wait a short randomised interval — long enough to
-     outlast somebody else's detour, which is the likeliest cause — and
+  1. **Request** (and, on an idle channel, the same request once more). Silence,
+     so wait a short randomised interval — long enough to outlast somebody
+     else's detour, which is the likeliest cause. The interval paces *requests*,
+     so it runs from the request rather than from the moment it was given up on:
+     the deadline just spent waiting is already time spent not asking. Then
   2. **request again**, more power, lower ceiling. Silence, wait again, and
   3. **request a third time**, at maximum power and budget 0. Silence.
 
@@ -1640,7 +1672,7 @@ The deadlines that follow, all derived and none transmitted:
 
 | Waiting for | Armed at | Deadline |
 |---|---|---|
-| GRANT, on the main channel | end of the START | `turnaround + toa(GRANT, hailing) + guard` |
+| GRANT, on the main channel | end of the START | Two stages. `turnaround + guard` — no time on air in it — expires when the GRANT must have **begun**, and asks the receiver whether a frame is arriving. One is: wait it out, `toa(GRANT, hailing) + guard`. None is: nobody answered, established half a frame earlier and against evidence rather than against an estimate of a frame that was never sent |
 | first MANIFEST, on the detour | end of the GRANT | `retune_gap + turnaround + toa(MANIFEST, budget) + guard` — the manifest lead spends part of the turnaround, never extends it |
 | a train, on the detour | its MANIFEST processed | the `length` that MANIFEST stated, plus `guard` |
 | reverse MANIFEST, on the detour | end of the requester's train | `turnaround + toa(MANIFEST, budget) + guard` — armed only when the GRANT's reverse flag declared one; without it the requester's own last frame ends the transaction and nothing is armed at all |
@@ -1811,7 +1843,6 @@ evidence.
   every detour (§10) makes this plausible for the first time — but
   both trains share one channel and one modulation, and splitting them means two
   retunes inside a transaction.
-- **`sender_ident` in the transmitting form** (§4).
 
 ## 18. What this protocol assumes of an implementation
 
