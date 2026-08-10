@@ -1075,6 +1075,12 @@ governs nothing a Reticulum announce does.
 Everything below is learned from traffic that was going to happen anyway. Nothing
 is measured on purpose, and nothing is transmitted in order to measure.
 
+An announcement from a node nothing else has named yet is still worth keeping.
+It carries four bytes of each identity and the capabilities together, which is
+enough to file against, and the node's own Reticulum announce supplies the rest
+whenever it comes. Discarding it instead costs a whole announce interval before
+that peer can be detoured with — the frame is the introduction.
+
 Against the identity hash, once its SUPE_ANNOUNCE2 has been heard: capabilities,
 maximum transmit power, whether it honours adaptive power requests. That entry
 serves every destination the node owns and, if it is a transport node, all
