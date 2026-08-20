@@ -18,7 +18,29 @@ a real client.
 ## To do
 
 1. **RNode over BLE cannot work until spangap-ble has
-   resolvable-private-address privacy.** The adapter address is a fresh
+   resolvable-private-address privacy.** — **Built 2026-08-19**, with the
+   sketch below implemented in esp-nimble's HOST-based privacy mode rather
+   than the controller's: the S3's controller-side engine generates RPAs the
+   host can never read (and only once the resolving list is non-empty at all,
+   which a bond-less mesh node never reaches), while host-based privacy sets
+   each RPA through the ordinary random-address route — so the existing
+   rotation machinery (per-disconnect, 15-minute idle, `bleOwnAddr`,
+   `BLE_EV_UP` refire) carried over intact, just deriving from the IRK.
+   Espressif's Kconfig gates that mode to the original ESP32 (whose
+   controller lacks LL privacy, so there it is forced on); spangap-ble
+   predefines the MYNEWT values at project scope
+   (`esp-idf/project_include.cmake`) to use it on the S3. The IRK persists in
+   `bonds.bin` (header grew a field; pre-privacy bond files are dropped on
+   upgrade, correctly — they were keyed to dead addresses), and the identity
+   a bond records is the chip's public address, stable for free. The
+   election caveat below was ACCEPTED as-is: the coin flip is bounded per
+   rotation window, and the Columba stale-state fix (item 2) retires its
+   cost. The acceptance test below is still owed — a bonded phone across a
+   rotation and across a reboot.
+
+   The original analysis, for the rationale:
+
+   The adapter address is a fresh
    non-resolvable private address at every host start, after every disconnect
    and at latest every 15 minutes while idle — deliberately, so
    mesh peers' per-address state (Columba keys dedupe sets, role flags and MTU
@@ -795,6 +817,11 @@ On-device, user-driven:
   upgrade, not a prerequisite.
 
 ## Open questions
+
+- Adaptive controller sizing: derive `ble_max_act`/connection count at
+  hostStart from what the earmark actually secured, so a squeezed boot
+  degrades to fewer connections instead of no Bluetooth. Today the numbers
+  are static and the earmark warns when it cannot get its block.
 
 - Does BlueZ truncate or reject the 3-bytes-too-large fragments the Linux
   ble-reticulum emits at high MTU, or does its own MTU accounting hide the
