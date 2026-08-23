@@ -1,10 +1,12 @@
 # SUPE — Spectrum Utilization and Performance Enhancements
 
-> Status: **specified, not yet implemented.** The schedule constants of §7, the
-> timing constants of §14.7 and the sync-word behaviour at SF5/SF6 are estimates
-> rather than measurements; [`simulation.md`](simulation.md) is where they are
-> meant to be settled. `supe-ladder-vectors.txt` remains the §14.3.4 conformance
-> authority for the ladder.
+> Status: **Aug 2026 — implemented in development versions of
+> [Reticulous](https://reticulous.net).** The schedule constants of §7 and the
+> timing constants of §14.7 are now measurements taken on hardware rather than
+> estimates; the sync-word behaviour at SF5/SF6 is still an estimate, and
+> [`simulation.md`](simulation.md) is where it is meant to be settled.
+> `supe-ladder-vectors.txt` remains the §14.3.4 conformance authority for the
+> ladder.
 >
 > `sender_ident` (§4) is what makes the return leg possible at all, and it is
 > the one thing here that gives up sender anonymity, so it is a key and not a
@@ -15,6 +17,9 @@
 > Reticulum daemon unmodified and unaware. One frame on the shared channel seeds
 > everything; every meeting's own goodbye seeds the next, so a pair with steady
 > traffic touches the shared channel once.
+>
+> SUPE also adapts transmit power to what is actually needed, so two nodes in
+> the same room might be carrying their unicast traffic at 125 µW.
 >
 > Everything normative is here: the frames in §0.1, the schedule in §7, the
 > regimes with their channels, ladder, sync words, timings and limits in §14,
@@ -125,7 +130,7 @@ the failure ladder (all of it private, all of it bounded)
     the transmitting side, unanswered:      keep your slots while you
           hold traffic; thin attendance if you like. The horizon is the
           only give-up there is
-    a tight schedule expires unmet:         shared-channel evidence —
+    a narrow schedule expires unmet:         shared-channel evidence —
           the absence ladder's business (§12), because the seed flew
           on the shared channel
     a wide schedule expires unmet:          no evidence at all; the next
@@ -227,11 +232,34 @@ channel that is faster and bothers only the two parties involved.
 | | sender identity | 0 or 3 | first three bytes of the sender's own identity hash, under `sender_ident` (§4); presence is implicit in the frame length |
 | | | **7 or 10** | |
 | **SUPE_ANNOUNCE2** | type | 1 | `0xC3` |
-| | regime / version | 1 | a nibble each |
+| | regime / version | 1 | a nibble each; regime `0xF` is **not a regime** — see below |
 | | capabilities | 2 | as below |
 | | power | 1 | `dBm + 64`, signed — what this frame went out at |
 | | identity hashes | 4 × count | first four bytes of each identity this node holds — last, so the count is implicit in the frame length |
 | | | **5 + 4·count** | |
+
+**Regime `0xF` — "I do not speak SUPE."** An announcement carrying it is a node
+stating that it will not meet: a neighbour holding the opposite belief drops it
+on the spot and goes back to plain framing for that node. The frame is otherwise
+unchanged and its identities are read as usual, because a neighbour dropping the
+belief still wants to know which node it is dropping it for.
+
+Silence cannot say this. A node that has spoken SUPE and then stops is
+indistinguishable from one that has gone out of range, and the neighbour would
+keep trying to meet it for as long as its absence ladder allowed. So the
+statement is a frame, and it is repeated on the ordinary announce interval —
+a neighbour that boots later, or misses the one that announced the change, would
+otherwise hold the wrong belief indefinitely.
+
+It is not a dialect, so it is not checked against one: any version nibble
+decodes. An unknown *real* regime is still discarded, because that one is a
+claim about a dialect this node does not have.
+
+A node in this state still **reads** everything. It ingests announcements and
+keeps its picture of the neighbourhood current — who speaks the protocol, what
+their radios can do, what the path loss to them is — so the switch can be thrown
+back without waiting to rediscover anyone. What it stops doing is answering: no
+hail is seeded, no slot is attended, no invitation is taken up.
 
 **Capabilities** — two bytes, carried by SUPE_ANNOUNCE2:
 
@@ -257,7 +285,7 @@ SHA-256 over the seeding frame exactly as it was transmitted.
 | | seed hash | 3 | as above |
 | | power | 1 | what this frame, and every frame this side sends in this meeting, goes out at |
 | | budget | 1 | the budget the trains will fly at — the receiver's choice, never above the proposed ceiling and never above either node's capability ceiling |
-| | PRIVSYNC heard | 2 | level (`dBm + 64`) and signal-to-noise (quarter-dB) of the PRIVSYNC — the headroom at the hailing configuration that the budget choice runs on. **Present only on a tight schedule**; a wide schedule was seeded by a goodbye, and the pair is fresh from a meeting instead |
+| | PRIVSYNC heard | 2 | level (`dBm + 64`) and signal-to-noise (quarter-dB) of the PRIVSYNC — the headroom at the hailing configuration that the budget choice runs on. **Present only on a narrow schedule**; a wide schedule was seeded by a goodbye, and the pair is fresh from a meeting instead |
 | | HAVEDATA heard | 2 | the same pair for the HAVEDATA just received, at the slot's own modulation |
 | | | **10, or 8 wide** | |
 | *the frames* | — | — | not SUPE frames. LoRa frames in the interface's ordinary framing — its checksum, its split handling — transmitted back to back, separated by the flip gap of §14.7. SUPE decides where and at what rate they fly, and touches nothing else about them |
@@ -293,6 +321,71 @@ later:
 
 No SUPE frame carries a cyclic redundancy check (§3); the LoRa frames of a
 train keep the interface's, being none of SUPE's business.
+
+## 0.2 The words
+
+Every term a node writes into a log is defined here, so that a line in the field
+and a paragraph in this document are talking about the same thing.
+
+| Term | Means |
+|---|---|
+| **hailing channel** | the shared channel the network already runs on, where every node listens by default |
+| **hail** | a PRIVSYNC on the hailing channel: one short frame declaring that traffic is waiting |
+| **meeting** | one exchange on an agile channel — attention, budget, trains, goodbye |
+| **train** | the run of LoRa frames one side sends inside a meeting; the unit is a frame on the air, not a packet from above |
+| **narrow schedule** | the slots a hail seeds: packed close together over a short horizon |
+| **wide schedule** | the slots a goodbye seeds: spread thin over a long one, and widening as they go |
+| **rendezvous** | a meeting reached through a wide schedule — an appointment kept, with no frame spent arranging it |
+| **slot** | one derived appointment: a time, a channel and a sync word, belonging to one side to speak in |
+| **horizon** | how long a schedule's slots run for before it is retired |
+
+**Narrow and wide are named for how closely the slots are packed**, and the rest
+follows from why each exists. A narrow schedule answers a hail, so the far end
+is known to be listening and the only question is which slot lands: try hard,
+try soon, and if the horizon runs out, hail again — that costs one short frame.
+A wide schedule is a standing appointment for traffic that may never come, so
+its slots start close and stretch apart, front-loaded because the likeliest
+moment for more traffic is straight after the last exchange and less likely
+with every second that passes.
+
+Two differences follow from what each schedule can prove rather than from its
+shape. A narrow schedule's slots fly at the **hailing configuration**, because
+nothing has been agreed yet — the hail was one frame on a shared channel. A wide
+schedule's fly at the **budget its seeding meeting confirmed**, because that
+meeting is standing evidence that modulation works between these two. And in a
+narrow schedule the seeker speaks first, having declared the traffic; in a wide
+one the side that *received* the last train speaks first, being the likely
+replier.
+
+### How a node reports what happened
+
+Two notations, used wherever a level or a channel is stated:
+
+| Form | Means |
+|---|---|
+| `tx{<power> <rssi> <snr>}` | **this** node transmitted at `power` dBm, and the far end reported reading it at `rssi` dBm / `snr` dB |
+| `rx{<power> <rssi> <snr>}` | the **far** node transmitted at `power` dBm, and this one read it at `rssi` / `snr` |
+| `<channel>/<bandwidth kHz>/<spreading factor>` | what it flew at |
+
+A triple is always *sent at, read as* — never one end's view given twice — which
+is what makes a path loss readable straight off the line. A reading that never
+came back is `?`, and that is not the same as a zero: one says nobody reported,
+the other is a measurement.
+
+A meeting is one line, opened by whoever spoke first so that the order on the
+line is the order on the air:
+
+```
+Our hail tx{10 -58 12} 3/500/5: tx{10 -50 12} rx{14 -45 10} - sent 5/5, rcvd 2/2
+Their hail rx{14 -45 10} 3/500/5: rx{14 -45 10} tx{10 -50 12} - rcvd 2/2, sent 5/5
+```
+
+`hail` says a hail arranged it and the triple after it is that frame;
+`rndv` says it was an appointment already held, which cost no frame and has no
+levels of its own to report. A side that carried nothing is left off rather than
+zeroed — no triple and no count, by the same rule as the `?` above, since `0/0`
+reads as a measurement of something. Whatever went wrong is appended to the same
+line: a failure is a property of the meeting, not a separate event.
 
 ## 1. The idea
 
@@ -711,12 +804,12 @@ stream = D_0[3..31] ‖ D_1[0..31] ‖ D_2[0..31] ‖ …
          slot k consumes stream[3k], stream[3k+1], stream[3k+2]
          as j_k, c_k, s_k
 
-t_0    = seed_gap                                       (tight, §14.7)
+t_0    = seed_gap                                       (narrow, §14.7)
        = 150 + (j_0 mod 40)                             (wide)
-t_k    = t_(k-1) + 40 + (j_k mod 24)                    (tight)
+t_k    = t_(k-1) + 40 + (j_k mod 24)                    (narrow)
        = t_(k-1) + min(60 + 30·k, 350) + (j_k mod 40)   (wide)
          …measured from the epoch; slots exist while t_k ≤ horizon
-         (400 tight, 3000 wide)
+         (400 narrow, 3000 wide)
 
 chan_k = 1 + (c_k mod nChans)         regime 1; always channel 0 in regime 0
 sync_k = W_sf[ s_k mod N_sf ]         §14.5's word list for the slot's
@@ -725,14 +818,14 @@ sync_k = W_sf[ s_k mod N_sf ]         §14.5's word list for the slot's
 tx_k   = alternating from the first transmitter, fixed by ROLE (below)
 ```
 
-The tight schedule's spacing yields nine or ten slots inside its horizon, the
+The narrow schedule's spacing yields nine or ten slots inside its horizon, the
 wide schedule's thirteen to fifteen inside its own. A conformance vector file
 over seeds belongs beside the ladder's (§14.3.4) once these constants settle
 (§16).
 
 **Two seeds exist and they differ only in parameters:**
 
-| | tight schedule | wide schedule |
+| | narrow schedule | wide schedule |
 |---|---|---|
 | seeded by | a PRIVSYNC on the main channel | a meeting's final THATSIT |
 | epoch | the end of the seeding frame, as each radio timed that RF event | the same |
@@ -848,7 +941,7 @@ coming. It is discarded there, not left to a reassembly timeout, because a
 fragment held past the point where it can complete is state every later decision
 has to reason around for no possible gain.
 
-**One tight schedule per peer.** A hail retried is a hail whose schedule went
+**One narrow schedule per peer.** A hail retried is a hail whose schedule went
 unanswered; that schedule is dead to both ends, and a node that keeps it holds
 appointments nobody will attend. Two live sets for one peer is worse than one
 wasted set, because the two interleave: every retune for one arrives late for
@@ -913,7 +1006,7 @@ at most that for a private attempt before anything else is considered.
 disagreed, a schedule expired, a slot skipped, a preamble missed — costs a few
 frames and dwells, self-clears at the horizon, and leaves both nodes exactly
 where a node without SUPE always is: on the shared channel. The one silence
-that is evidence is a *tight* schedule expiring unmet, because its seed flew on
+that is evidence is a *narrow* schedule expiring unmet, because its seed flew on
 the shared channel and was itself carrier-sensed: that is the absence ladder's
 input (§12). A wide schedule expiring unmet is an ordinary end of conversation
 and teaches nothing.
@@ -944,7 +1037,7 @@ above either node's capability ceiling, resolved against the slot's channel
 (§14.3). The listener chooses because the listener is the one about to receive:
 it holds its own noise floor, its own airtime ledger for this channel, and the
 freshest possible reading of the link — the HAVEDATA it just demodulated. On a
-tight schedule its PRIVSYNC reading is the headroom-above-hailing that the
+narrow schedule its PRIVSYNC reading is the headroom-above-hailing that the
 budget choice classically runs on; on a wide schedule the previous meeting's
 measurements are seconds old and the HAVEDATA pair refreshes them.
 
@@ -1140,7 +1233,7 @@ Two bindings that save a slow first meeting:
 
 ## 12. Failing well
 
-- **A tight schedule expires unmet** — the peer is busy, deaf, or gone, and the
+- **A narrow schedule expires unmet** — the peer is busy, deaf, or gone, and the
   three are indistinguishable. This is the one silence that scores, because its
   seed was carrier-sensed onto the shared channel and its slots gave the peer
   several hundred milliseconds of chances: one strike. Silence is answered by
@@ -1162,7 +1255,7 @@ Two bindings that save a slow first meeting:
   reported as a peer that has gone — and blacklists a party in mid-conversation.
 
 - **The absence ladder, in full.** On a peer with no absence record: seed, wait,
-  seed at more power, wait, seed at maximum. Three tight schedules expiring
+  seed at more power, wait, seed at maximum. Three narrow schedules expiring
   unmet while nothing at all is heard make the peer **absent**, and traffic
   addressed to it is **dropped** rather than transmitted into the void — safe,
   because link data, channel traffic, resource parts and proofs all have retry
@@ -1194,7 +1287,7 @@ Two bindings that save a slow first meeting:
 
 - **A wide schedule expiring unmet is not a failure and scores nothing.** It is
   the ordinary end of a conversation. The next traffic for that peer seeds a
-  tight schedule on the shared channel, as any traffic always could.
+  narrow schedule on the shared channel, as any traffic always could.
 
 - **A missed slot inside a live schedule scores nothing either**, in any
   direction. The peer may be mid-frame on the shared channel — a single
@@ -1218,7 +1311,7 @@ Two bindings that save a slow first meeting:
   on different slots, channels and sync words, so they do not collide with each
   other; they compete only for the peer's attendance, and a peer attends what
   it can. The seeker whose slots go unattended is looking at an ordinary busy
-  peer, not at absence — its tight schedule's expiry still scores its strike,
+  peer, not at absence — its narrow schedule's expiry still scores its strike,
   which is why the strike threshold is three and the interval between seeds is
   randomised.
 
@@ -1696,7 +1789,7 @@ instrumentation we do not have and a simulator charges them by construction.
 | Constant | Value | What it is |
 |---|---|---|
 | turnaround | 25 ms | The longest a node may take between the end of a frame it is answering and the start of its answer, on the same channel and configuration. It is what a GIMME must beat after a HAVEDATA, and what the answer must beat after a THATSIT. |
-| seed gap | 100 ms | The epoch to the first slot of a tight schedule. Not the turnaround: that measures a node already on the channel with the exchange in hand, while this one measures a node that has just demodulated a frame and must derive a schedule from it, retune to a channel that frame chose, and have its receiver open — all before the far end starts speaking. It is sized to the **slower** of the two ends, because being inside a slot's window is not the same as hearing it: a receiver opened part-way through a frame has missed the preamble and hears nothing at all, however strong the signal. Set to a turnaround, it produced a pair that met only when the speaker happened to be later than the listener — frequent enough to look correct, and failing whenever either end was briefly busy. |
+| seed gap | 100 ms | The epoch to the first slot of a narrow schedule. Not the turnaround: that measures a node already on the channel with the exchange in hand, while this one measures a node that has just demodulated a frame and must derive a schedule from it, retune to a channel that frame chose, and have its receiver open — all before the far end starts speaking. It is sized to the **slower** of the two ends, because being inside a slot's window is not the same as hearing it: a receiver opened part-way through a frame has missed the preamble and hears nothing at all, however strong the signal. Set to a turnaround, it produced a pair that met only when the speaker happened to be later than the listener — frequent enough to look correct, and failing whenever either end was briefly busy. |
 | retune gap | 1 ms | The interval both sides observe between the last frame at one configuration and the first at another — arriving at a slot, and stepping to the confirmed budget after GIMME. It exists to cover the synthesizer, not the software. |
 | train gap | 2 ms | The receiver-flip interval before and between the frames of a train: RX-done must be serviced, the frame read out and dispatched, and receive re-armed before the next preamble flies. Counted into every stated train length, so the far end's deadline covers it. Nothing else rides in it — the sender's next frame is already built. |
 | guard | 10 ms | Slack added to every derived deadline *inside a meeting*, absorbing scheduling jitter at both ends. There the task is hot: the previous frame's completion is what drives the next step. |
@@ -1839,7 +1932,7 @@ power is the cliff announcing itself before anything is lost outright.
   which is the same discipline this section applies everywhere else: a
   measurement outranks an inference. With no fresh report there is no
   measurement and the miss stands on its own — raise.
-- **A tight schedule expires unmet** — one strike of §12's ladder, read as a
+- **A narrow schedule expires unmet** — one strike of §12's ladder, read as a
   power measurement exactly when a later, louder seed is attended: the seed
   power that drew attendance bounds the cliff from above, the ones that did not
   bound it from below. Nothing else varies between the attempts, which makes it

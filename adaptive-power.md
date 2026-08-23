@@ -177,12 +177,12 @@ to 2 would save nothing at all.
 - **Earn the right to dial down.** A single frame's RSSI moves several dB.
   `neiRecentSignal` already returns a sample count beside the mean, so the gate
   is "N samples in the ring before you dial anyone down".
-- **Honouring a request is gated on `adaptive_txpwr`, unlike answering a
-  probe.** Answering an `lora rf` is unconditional because a probe run does not
-  change steady-state behaviour. Honouring a request *does* — it puts your
-  transmit power under someone else's control, observably. If that were
-  unconditional, a node with the key off would still be dialled down by its peers
-  and still be correlatable across identities, and the opt-out would not be one.
+- **Honouring a request is unconditional**, like answering a probe. There is no
+  key to gate it on: a request is the *receiver's own measurement* of its own
+  reception, which is the one thing a transmitter can never make for itself, and
+  refusing it would be discarding better evidence than anything available here.
+  The frame only ever goes to a node that speaks the protocol, so accepting one
+  is part of speaking it.
 
 ### 3a.3 Consequences worth knowing
 
@@ -233,13 +233,25 @@ PA nonlinearity fingerprint a radio passively with no cooperation. Reticulum's
 anonymity model is network-level and never claimed unlinkability against a local
 RF observer. The mitigation is the opt-out above, and it is the default.
 
-## 4. Non-cooperating neighbours — reciprocity only, plus regression detection
+## 4. Non-cooperating neighbours — nothing at all
 
-**Decision: don't try to find the cliff on peers that can't tell us anything.**
-Estimate from reciprocity, add margin, and spend the effort on noticing when a
-power that *was* working stops working. That capability is needed regardless —
-conditions change, nodes move, interference arrives — so it is the right thing to
-build even if power adaptation were free.
+**Decision, superseding everything in this section: transmit to them at the
+configured power.** Not reciprocity plus margin — *nothing*. The reasoning below
+stands as written and is why: every path here is a guess that no return
+measurement can falsify, and §8 already names the case that breaks it outright —
+"§3's reciprocity floor breaks when two adaptive nodes face each other". Two
+nodes each reading the other's surplus off their own receiver both dial down, and
+the reciprocity each is relying on is exactly what stops holding when both ends
+move. The margins and timidity below buy time before that happens; they do not
+prevent it, and there is no signal that tells either node it happened.
+
+So the tiers that survive are the two fed by a power the peer **stated**, which
+means a peer speaking SUPE, and there is no setting: a switch would only offer
+the broken behaviour back. Regression detection — noticing when a power that
+*was* working stops working — is kept and is worth having regardless, since
+conditions change, nodes move and interference arrives.
+
+The rest of this section is retained for the reasoning, not as a plan.
 
 The reason not to search downward on a vanilla peer is structural, not a matter
 of tidiness. `lora rf` works because a **fixed-time slotted exchange makes
@@ -482,9 +494,10 @@ alongside rnsd's own use of the radio. Any standard Reticulum client — phone,
 desktop — attaches as if to an ordinary RNode and immediately stops transmitting
 at max power, **with no change to the client**. A tiny serial-protocol addition
 lets the interface recognise a µR-capable peer ident, so µR clients get the full
-cooperative layer while vanilla clients still get unilateral reciprocity-based
-adaptation (§3/§4). The reach is the point: the entire existing RNode-client
-population gets adaptive power for free.
+cooperative layer. Vanilla clients get nothing beyond the power request the
+interface can already send them (§3a) — §4 is why: unilateral reciprocity is not
+a lesser version of this, it is the thing that breaks when two of them meet. The
+reach is still the point, but it is the request that carries it.
 
 **Known caveat (host-driven radio params).** A client that reconfigures SF / BW /
 frequency / CR can't be silently honoured under an adaptive layer sharing the
