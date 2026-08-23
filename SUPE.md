@@ -818,6 +818,22 @@ transmission of this node's own still going out, because that is the one case
 where servicing a due slot would retune the chip out from beneath a frame
 already on the air.
 
+**Heard is not held.** An answer to a THATSIT proves the far end received the
+frame that described the train. A repair request proves the same and names what
+it lacks. Neither says the train arrived, and only the goodbye does — so the
+frames a repair request names are accounted for by nothing until that goodbye
+comes. A sender that discards them on the answer alone destroys what nobody
+received: gone from the side that held it, never had by the side it was for,
+and the layer above then retries into a meeting that repeats the loss exactly,
+for as long as the traffic lasts. What one repair round cannot recover stays
+with its sender for the next meeting.
+
+The obligation is the receiver's too. The goodbye states that everything is
+accounted for, so a receiver still missing frames when its repair round expires
+may not send one. It delivers what it has, surrenders the rest upward, and says
+nothing — which is what leaves the sender's copy where the sender can still use
+it. Silence there costs one answer deadline; a goodbye there costs the data.
+
 **A hail outranks a rendezvous.** When two schedules want the same moment, the
 one seeded by a hail is served first. It was bought a moment ago with a frame on
 the shared channel by a party that has traffic in hand and said so, and it lasts
