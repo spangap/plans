@@ -190,11 +190,11 @@ already exist.
 **Compiled, not state: the regime tables.** Everything SUPE.md §3 lists as "a
 constant of the regime", keyed by regime and version — channels, ladder, sync
 words, frame layouts and lengths, duration encodings, ceilings, limits, retune
-guard, expiry. The expiry date is the build's own timestamp plus the fourteen days
-SUPE.md §3 allows — the ESP-IDF app descriptor already carries the timestamp,
-and the offset is itself a table constant — never hand-maintained, and
-`lora <n> supe` prints it, so a node that has gone quiet by expiry says so
-instead of looking like a radio bug.
+guard, expiry. The expiry is a CALENDAR DATE compiled in (§3), moved by hand as
+the dialect is revised — a date rather than an offset from each build, so that
+every node on a channel retires the dialect at the same moment however far apart
+they were flashed. `lora <n> supe` prints it, so a node that has gone quiet by
+expiry says so instead of looking like a radio bug.
 
 ## 4. The pure core, and why it is built first
 
@@ -410,7 +410,8 @@ bench. §11 is still the list of what they block.
 
 **Phase 2 — pure core, host-side**
 - [x] regime tables for regimes 0 and 1, version 0, expiry stamped as the
-      build timestamp plus 14 days (SUPE.md §3), the offset a table constant
+      calendar date compiled in (SUPE.md §3), moved by hand as the dialect
+      is revised
 - [x] `resolve(regime, version, hailing, step)` with family limits (no SF5 on
       SX127x, SF6 barred for family 1) and the low-data-rate rule
 - [x] sync word from the resulting configuration (`own` / `0x67` / `0x21`)

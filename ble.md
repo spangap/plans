@@ -612,7 +612,7 @@ there is no net-side server here).
   array index, teardown closes rnsd first). Fields: `name = "ble/<first 4
   bytes of the peer identity, hex>"` (fits `name[24]`), `mtu = RNS_MTU` (500
   — `_FIXED_MTU` is unconditional in rnsd, the ATT MTU never leaks upward),
-  `mode = RNS_IFACE_MODE_GATEWAY`, `point_to_point = 1` (split horizon),
+  `mode = RNS_IFACE_MODE_GATEWAY`, `point_to_point = 1` (no echo back to the peer),
   `retain_announces = 1` (an edge link whose peers we are custodians for —
   deliberate, and the opposite of tcp's default), `in = out = fwd = 1`,
   `announce_cap = 0` (rnsd applies the 2% default), bitrate a measured
@@ -794,7 +794,8 @@ On-device, user-driven:
   `rnsServiceRegister(…, RNS_PHASE_IFACE)`, park-don't-delete, priority 1.
 - **Per-peer rnsd interfaces for iface-ble**, matching iface-tcp inbound and
   upstream, rather than one shared-medium interface. It gives correct
-  split-horizon (`point_to_point = 1`) and per-peer announce accounting; the
+  point-to-point echo suppression (`point_to_point = 1`) and per-peer announce
+  accounting; the
   cost is one of the 16 global `RNSD_MAX_IFACES` per peer, which is why
   `max_peers` defaults to 4.
 - **Follow Columba's fragment sizing** (`attMtu - 3` into the fragmenter, so

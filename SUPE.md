@@ -466,10 +466,14 @@ limits.
 
 **At this stage of development the version of every regime stays at zero and
 everything here is expected to change.** The expiry is what makes that safe, so
-it does the work a version number would otherwise do: no build should set one
-more than fourteen days ahead of its own build date. A node left unattended for
-a fortnight then stops speaking SUPE altogether, which is the intended outcome:
-far better than speaking a stale dialect at a network that has moved on. There
+it does the work a version number would otherwise do: it is a CALENDAR DATE,
+stated in the build and moved by hand as the dialect is revised. A date rather
+than an offset from each build because what matters is that every node on a
+channel stops speaking the same dialect at the same moment — with an offset,
+two nodes flashed a week apart expire a week apart, and the older one spends
+that week talking to nobody while looking like a radio fault. Past the date a
+node stops speaking SUPE altogether, which is the intended outcome: far better
+than speaking a stale dialect at a network that has moved on. There
 are no migrations and no compatibility shims anywhere in this protocol — the
 wire changes outright, and the expiry retires what came before.
 
@@ -1402,7 +1406,7 @@ every node supports (§3).
 |---|---|
 | name | Single Channel |
 | version | 0 |
-| expires | set at build time, no more than 14 days ahead (§3) |
+| expires | a calendar date compiled into the build, moved by hand (§3) |
 | channels | one: channel 0, the hailing frequency |
 | ladder | the spreading factors above the hailing one, at the hailing bandwidth |
 | budgets available | to the lowest spreading factor both radio families reach — from an SF7 network, two where both are SX126x and **none where either is SX127x**, whose first entry would be the barred SF6; slower-hailing networks reach further before that bites (§14.3) |

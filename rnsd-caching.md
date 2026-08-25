@@ -670,8 +670,8 @@ Recorded, not scheduled. Nothing above depends on them.
   so a node transits everything between everything. Two flags per interface
   cannot express the constraint either: wanting TCP→LoRa forces
   `fwd_in(TCP)`, wanting LoRa→TCP2 forces `fwd_out(TCP2)`, and TCP→TCP2 is
-  exactly their conjunction. The semantic is an ordered pair — of which split
-  horizon is the diagonal, and the point-to-point suppression already
+  exactly their conjunction. The semantic is an ordered pair — of which the
+  same-interface echo is the diagonal, and the point-to-point suppression already
   hand-built in `request_path` is its one implemented corner. Interface *zones*
   with a class × class table keep the configuration linear.
 - **Egress cost as a policy input.** The interface mode taxonomy has no axis
