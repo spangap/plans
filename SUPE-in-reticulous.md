@@ -166,7 +166,7 @@ already exist.
   prefix, both deadlines, the saved hailing config to return to.
 - Announce beat: next-due tick, reusing the existing 15-minute beat's timer
   mechanism rather than adding a second timer — the mechanism, not its
-  interval: the beat fires per `SUPE.announce_interval`, default 30 minutes
+  interval: the beat fires per `announce_interval`, default 30 minutes
   (SUPE.md §4).
 - **Regime 1's airtime enforcement ring** (phase 8): per channel, fine-grained
   enough to defend "100 s in any 3600 s", with a precomputed per-channel verdict
@@ -450,7 +450,7 @@ bench. §11 is still the list of what they block.
 
 **Phase 5 — ANNOUNCE2**
 - [x] announce beat on the existing beat's timer mechanism; interval from
-      `SUPE.announce_interval`, default 30 min
+      `announce_interval`, default 30 min
 - [x] ANNOUNCE2 sent on the main channel, bundled, capabilities and power byte
 - [x] receive side files capabilities against the `Neighbor` identity
 - [x] path-loss pair filed: the frame's power byte against our own reading
