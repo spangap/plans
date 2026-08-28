@@ -109,6 +109,83 @@ a real client.
    full 5 s scan cadence forever.
 3. `microreticulum` logs "No cache directory, creating…" against deliberately
    no-op file stubs on every boot — cosmetic, quiet it.
+4. **Slot policy: hold a door open, and choose peers by what they are worth.**
+   The connection budget is divided by agreement — `iface-ble` reserves three
+   and `rnode-ble` one, each capping its own peers (`bleSlotReserve`,
+   ble.h:290) — and the peers it takes are whoever the scan saw first above
+   `s.ble.rns.min_rssi`. Two things to build on top: the door must stay open
+   in more cases than a static reservation covers, and the mesh slots should
+   go to the most valuable peerings rather than the earliest.
+
+   - **A free slot cannot be found on demand — inbound has no knock.** NimBLE
+     refuses to *start* connectable advertising while the connection pool is
+     exhausted (`ble_hs_conn_can_alloc()`, ble_gap.c:4172), so a device with
+     every slot in use is not merely busy, it is invisible: the phone's scan
+     finds nothing and no event of any kind reaches us to react to. The same
+     applies to a mesh neighbour dialling us, since our advertising is its
+     precondition. Eviction on demand is therefore available only to the
+     DIALLING side, where we own the trigger — evict, wait for
+     `BLE_EV_DISCONNECT`, then dial, since `ble_gap_connect` carries the same
+     `can_alloc` check (ble_gap.c:7581). Anything inbound needs the slot held
+     ahead of time. What can be made dynamic is who holds it: make the
+     reservation reactive — `bleSlotReserve`/`bleSlotRelease` firing an event
+     carrying the uncommitted budget — and `iface-ble` grows into the door's
+     slot while the door is disabled or its session is attached, shedding a
+     peer when it reopens. The cost is that reopening takes a disconnect
+     round-trip, during which a scanning phone still sees nothing.
+   - **The valuation input already exists, and the keys already match.**
+     `s_ownIdent` is `rnsdIdentityHash("secrets.rnsd.identity")` truncated to
+     16 bytes (ble_iface.cpp:594, ble_iface_priv.h:33) and a netgraph record's
+     `origin` is the same 16-byte identity hash (netgraph.cpp:369) — so a
+     peer's handshake ident IS a netgraph vertex id. "What does this node
+     already link to, and does peering with it shorten anything" is a query
+     against the community graph every node already holds, not an estimate.
+     Link cost is there too: `netgraphContributeIface` puts each class's
+     configuration on a node's `if` line, so the graph knows whether a
+     candidate's other links are LoRa at SF12 or a TCP uplink. The live half
+     of a valuation — RSSI, throughput, churn — must stay out of the records:
+     netgraph.h is explicit that a field which moves constantly keeps every
+     digest in the community permanently mismatched. Valuation fuses the
+     published static graph with purely local measurement.
+   - **Identity arrives too late to admit on; put six bytes in the
+     advertisement.** The advertisement carries the 128-bit service UUID and
+     nothing else (ble_iface.cpp:464), so before dialling there is an RSSI and
+     a rotating RPA and no way to value anything. Flags (3) plus a 128-bit
+     UUID (18) leave 10 of the 31 bytes: 2 AD header + 2 company id + **6
+     bytes of ident** as manufacturer data, enough to key a graph lookup in a
+     community of dozens, with the full 16 confirmed at handshake. (Scan
+     response would carry all 16, but wants scan-response support in
+     spangap-ble and active scanning's airtime.) It repairs a second thing:
+     the dial gate is address-keyed, and a peer's address rotates, so a
+     backoff currently does not survive the far side's rotation.
+   - **Rejection needs a duration on the wire, or it is a dial loop.** Inbound,
+     the ident is known only at handshake, so a refusal is always a disconnect
+     after the fact — and the peer's scanner sees us again on its next pass and
+     re-dials. That is the self-sustaining shape INTERNALS already describes
+     for address rotation, and neither side's dial gate damps it. The handshake
+     reply wants a refusal reason and a backoff duration, honoured by the
+     receiving side. Constraint: the protocol is ble-reticulum v2.2 and Columba
+     and Linux `BLEInterface` are third parties on it, so a refusal they do not
+     parse must degrade to a plain disconnect — which puts a floor under how
+     much of the policy can live on the wire rather than in our own dial gate.
+   - **A parallel AutoInterface link scores low; it does not veto.** The
+     same-node test is the netgraph origin — a node's record lists its own
+     interfaces — not `rnsdPeersForEach("auto", …)`, whose rows are keyed by
+     announced destination hashes rather than node identity. And the redundancy
+     is conditional: AutoInterface dies with the Wi-Fi it runs on, and BLE
+     surviving that is the reason to have it. So the parallel link drives the
+     score to near zero for as long as it is up, with a bounded backoff —
+     never a permanent shun, or the peer is gone at the moment the AP reboots.
+   - **Two failure modes to design against from the start.** Oscillation: both
+     ends value independently and act independently, and acting changes the
+     graph that was scored, so a replacement needs a margin over the incumbent,
+     a minimum tenure before a peer is evictable, and a rate limit — otherwise
+     A drops B for C while C is dropping A for D. Starvation: a node not yet in
+     the graph scores zero on every structural metric and is exactly the node
+     that most needs adopting. Both point at the same shape for the budget —
+     **one door + N best-valued + one rotating exploration slot** — where the
+     exploration slot is what stops the valuation freezing the mesh into
+     whoever was there first.
 
 Every claim below marked "verified" was checked against the named source at
 plan-revision time. File:line references are into this workspace.
