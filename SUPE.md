@@ -675,7 +675,7 @@ the Reticulum daemon. No secrets, no cooperation from the daemon.
 | our destination hashes | an announce we transmit at hop count zero | effectively never; refreshed by re-announce |
 | our transport identity | an announce we relay — its first address field is ours | effectively never |
 | link identifiers we terminate | anything we transmit at hop count zero addressed to a link | an observed link close; otherwise keep-alive staleness |
-| link identifiers we relay for | forwarding a frame addressed to a link — the return direction of a relayed link arrives addressed to the link identifier, not to our transport identity, so a relay that skips this sleeps through it and the link dies | the same |
+| link identifiers we relay for | forwarding a link request, and forwarding any frame addressed to a link — the return direction of a relayed link arrives addressed to the link identifier, not to our transport identity, so a relay that skips this sleeps through it and the link dies. The request is the earliest evidence there is, and it is derivable at every hop: the identifier is a hash of the request with its hop count and transport field excluded | the same |
 | pending proofs | the truncated hash of each packet we send or relay that may attract a delivery proof | the proof arriving; otherwise the receipt or reverse-table timeout |
 
 Store the 3-byte prefix, an expiry, and a small reference count — 24 bits with
@@ -702,9 +702,9 @@ already carrying:
 
 | Tag | Resolves to its node by |
 |---|---|
-| a transport identity | being one already — a relayed announce's first address field is the relaying node's identity hash |
+| a transport identity | the announcement (§9) that listed it. Nothing else can: it is never announced by Reticulum, and a relayed announce's claim to it is a claim about who transmitted, which no signature covers |
 | a destination hash | the Reticulum announce that carried that destination's public key, whose truncated hash is the identity (§2) |
-| a link identifier | the destination the link request was addressed to, recorded as the request goes past |
+| a link identifier | the node the link request was handed to, recorded as the request goes past: the destination where it was dialled directly, and the relay named in the request's first address field where it was dialled through one. Never the far end of a path — every frame of a session goes to the first hop, and a link to a destination behind a gateway is a link to the gateway as far as the air is concerned |
 
 Capabilities and measurements hang off the identity, never off the tag, so a
 node with forty destinations costs one capability entry and forty pointers.
@@ -1151,6 +1151,14 @@ the three used for tags, because a tag names one schedule and tolerates
 collisions while this names a node in a table that persists — the extra byte is
 worth its airtime here and not there.
 
+**The transport identity is the one that must be in there.** It is a key of its
+own, separate from the one a node's destinations hang off, and Reticulum
+announces it nowhere: it reaches the air only as the first address field of a
+packet in transport, which is the tag of everything relayed towards that node.
+This frame is the only thing that says whose it is, and without it a gateway's
+neighbours cannot recognise the address they send all their transit traffic to.
+A node learns its own from the announces it relays.
+
 **Every identity a node holds rides in one frame.** On the main channel an
 unbundled announcement would spend a preamble and a frame per identity where
 one frame carries all of them, so unbundling costs strictly more for every
@@ -1221,6 +1229,13 @@ Two bindings that save a slow first meeting:
 - **Links inherit.** When the traffic being carried is a link request, both
   sides compute the same link identifier independently and file everything
   under it, so all later traffic on that link opens at the peer's best budget.
+
+  Every hop of a relayed request computes it too, and files it against the node
+  it hands the request to. This is the whole of what makes a session through a
+  gateway meetable: a link's frames name the link and nothing else — no
+  destination, no transport identity — so a link identifier filed against
+  nobody is a session that can only ever contend on the shared channel, which
+  on a gateway is most of the traffic there is.
 
   The dialled side has to file it against the *node* as well, and PRIVSYNC's
   sender identity is the only thing that lets it. A link request names nobody —
