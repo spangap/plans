@@ -1,5 +1,11 @@
 # SUPE in iface-lora — implementation plan
 
+> Status: **executed.** The implementation lives in `iface-lora/esp-idf/src/`
+> and is described as it is in `iface-lora/INTERNALS.md` §19; the wire is
+> [`SUPE.md`](SUPE.md). This plan's phases, checklists and frame names are the
+> ones it was executed against and are not maintained: where they and the two
+> documents above differ, the two documents above are right.
+>
 > Scope: **how to build [`SUPE.md`](SUPE.md) in `iface-lora`, and what not to
 > spend time rediscovering.** SUPE.md is the protocol and stays authoritative for
 > anything on the air; this file is the map from it to this codebase — what already

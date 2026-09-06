@@ -1,5 +1,11 @@
 # Adaptive TX power for iface-lora — what's left
 
+> Status: **executed.** The controller is `iface-lora/INTERNALS.md` §15, its
+> measurements come from SUPE's own frames (§19) and every power it handles is
+> referenced to the antenna connector (§4b, [`rf-calibration.md`](rf-calibration.md)).
+> The measurement sources weighed below that ride a Reticulum delivery proof
+> no longer exist; where this file and INTERNALS differ, INTERNALS is right.
+>
 > Scope: **only the parts not yet built.** Everything that exists is documented
 > in **`iface-lora/INTERNALS.md`**, which is authoritative for it: §12 the
 > per-frame LoRaMon recorder, §13/§13.1 the passive neighbour table (`lora n`),
