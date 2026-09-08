@@ -38,7 +38,7 @@ cmd.send ──► processReady (attempt) ──ok──► outbox slot ──�
   conversation links) is task-local and lock-free, so a separate task would
   need locking everywhere for no gain. Per entry: gone/cancelled/terminal →
   drop; in flight → skip; older than `s.lxmf.delivery_timeout` →
-  `DELIVERY_TIMEOUT` (`tries = 255`; an RLPG mailbox may take custody instead);
+  `DELIVERY_TIMEOUT` (`tries = 255`);
   else one attempt.
 - **An attempt is bounded.** A send rnsd parks for a path gets
   `LXMF_PATH_GRACE_S` (60 s); then lxmf cancels it rnsd-side and requeues,
@@ -52,12 +52,12 @@ cmd.send ──► processReady (attempt) ──ok──► outbox slot ──�
   `REQUESTING_PATH` / `QUEUED` are the statuses a queued message shows.
 - New status `DELIVERY_TIMEOUT = 38`; removed knob `s.lxmf.retry_throttle_min`.
 
-## 2. Telemetry removal (rns, lxmf, rlpg, frontends)
+## 2. Telemetry removal (rns, lxmf, frontends)
 
 - `IN_PACKET` is `opcode | full LXM wire`; `OUT_RESULT` is its fixed 9 bytes;
   a forwarded link packet is the plaintext alone; `rnsd_link_resource_done_t`
-  loses `rssi/snr/iface`. Every link consumer (lxmf inbound/conversation/RLPG/
-  propagation links, the rlpg node) reads the payload from byte 0.
+  loses `rssi/snr/iface`. Every link consumer (lxmf inbound/conversation/
+  propagation links) reads the payload from byte 0.
 - The extended proof is gone: `Packet::prove_report`, the `report_signal`
   argument, `PacketReceipt::remote_*`/`local_txp`, `Interface::tx_power_dbm`,
   `rnsd_iface_t.tx_power_known/dbm`, the +5 proof-length admits, rnsd's

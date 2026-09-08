@@ -23,7 +23,7 @@ not yet been proven on real hardware.
 | Open what arrives | `Identity::decrypt(token, ratchets)` trial decrypt, `Destination::decrypt`, `rnsdDecryptSelf(identity_key, dest_hash, …)` |
 
 Consumers updated for the frame change: lxmf (which also lost its
-offset-32 app_data guesses), nomad, rlpg.
+offset-32 app_data guesses) and nomad.
 
 Deliberately **not** implemented: `enforce_ratchets`. Upstream defaults it off,
 and turning it on drops mail from every sender that has not heard a current
@@ -48,9 +48,9 @@ order of what breaks worst if wrong:
    the trial decrypt and the identity-key fallback exist for.
 5. **Across a rotation and a reboot.** `RATCHET_INTERVAL` is 12 h, so force it
    by clearing `secrets.rnsd.ratchets.<dest>` (fresh set on next announce) or by
-   shortening the constant on a test build. A message deposited on an RLPG
-   mailbox or a propagation node before a reboot must still open after it —
-   that is what persisting the privates is for.
+   shortening the constant on a test build. A message deposited on a
+   propagation node before a reboot must still open after it — that is what
+   persisting the privates is for.
 6. **Cost sanity.** A non-ratcheted sender's packet pays an ECDH per retained
    ratchet before the identity key is reached (32 of them). Watch that inbound
    opportunistic traffic from a stock client doesn't visibly stall the rnsd

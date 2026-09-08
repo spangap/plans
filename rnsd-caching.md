@@ -309,11 +309,11 @@ Claims ride the image *compiled into the record* (mask, `prio`, `claim_touch` �
 application's own records, and consumers re-assert at startup. A discarded
 image therefore loses no intent, only the head start.
 
-**One exception to name:** a key seeded out-of-band — `rlpg.cpp:812` injects a
-mailbox owner's key from a signed authentication frame, not from an announce —
-is *not* reconstructible from the network. It is re-seeded on the next owner
-session, so a discarded image is self-healing, but if that ever stops being
-acceptable the key belongs in rlpg's own record rather than here.
+**One exception to name:** a key seeded out-of-band — one carried in a signed
+authentication frame rather than in an announce — is *not* reconstructible from
+the network. It is re-seeded on the next session, so a discarded image is
+self-healing, but if that ever stops being acceptable the key belongs in the
+consumer's own record rather than here.
 
 ### 3.3 Sizing
 
@@ -343,7 +343,7 @@ pressure.
 
 ```c
 typedef struct {
-    uint8_t  consumer;   /* LXMF | NOMAD | RNSH | RLPG | RNSD */
+    uint8_t  consumer;   /* LXMF | NOMAD | RNSH | LXMPROXY | RNSD */
     uint8_t  klass;      /* PERSIST | EPHEMERAL */
     uint8_t  layers;     /* DIR | DIR_BLOB */
     uint32_t decay_s;    /* ordering scale since last touch; 0 = default */
@@ -369,7 +369,7 @@ straddle compiles, the store compares. `decay_s` enters the comparison as
 **Transport: ITS aux message, app task → rnsd task.** Verified: every
 browser-originated action that could create a claim (add contact, bookmark)
 arrives as a storage write (`*.cmd.*` sentinel or `s.*` patch) that lxmf /
-nomad / rlpg observe via `storageSubscribeChanges`, whose callbacks run on the
+nomad observe via `storageSubscribeChanges`, whose callbacks run on the
 *subscribing app's task* — so claims always originate on an app task, never
 from the browser path directly. The rns straddle marshals them with
 `itsSendAuxOwnedByTaskHandle` to an aux port on rnsd (the pattern storage ops
@@ -634,7 +634,7 @@ still retains, guard bypass wired per §5).
 
 **3 — recall switch + deletions.** `Identity::recall` reads the directory;
 `_known_destinations` and the stubbed save/load are deleted **in the same
-stage** rlpg moves to `rdirSeedPubkey` and lxmf drops its capture/feed pair
+stage** the out-of-band seeder moves to `rdirSeedPubkey` and lxmf drops its capture/feed pair
 (`lxmf.cpp:812`, `:828`) and the `pubkey` contact field — no window in which a
 writer has no home. Fan-out gains the pubkey; provider and claim marshalling
 land; `s.rnsd.identity.cache_max` is deleted.
