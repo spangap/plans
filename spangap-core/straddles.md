@@ -819,7 +819,7 @@ spangap make            # workspace = ./calendar; just works
     straddle.yaml
 ```
 
-From `~/code/my-app/`, `spangap make` finds the marker upward, bind-mounts `~/code/`, and uses sibling straddles as local overrides automatically. The marker can be empty as a pure sentinel, or carry optional knobs:
+From `~/code/my-app/`, `spangap make` finds the marker upward, bind-mounts `~/code/`, and uses sibling straddles as local overrides automatically. The marker can be empty as a pure command key, or carry optional knobs:
 
 ```yaml
 name: my-stuff               # cosmetic, shown in the signaling line

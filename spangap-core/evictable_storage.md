@@ -135,7 +135,7 @@ verb in the consumer API.
   lock-held / hard-timing path). That is a latency contract, not an API change.
 - **Browser is unified, not special-cased.** Its get is async by nature
   (remote, over the datachannel). A cold get becomes: read index → see
-  `resident:0` → write a `cmd.page_in` sentinel (same idiom as
+  `resident:0` → write a `cmd.page_in` command key (same idiom as
   `cmd.send`/`cmd.delete`, which self-clear) → device pages in, grafts, flips
   `resident:1` (or `resident:err`) → patch flushes → awaited read resolves.
   Same semantics as the device-side blocking get; only the *waiting mechanism*
@@ -258,7 +258,7 @@ swapped.
 ## 11. Code anchors (so future-us resumes fast)
 
 - LXMF message paths / persist: `reticulous/main/lxmf.cpp:164-169` (`msgPath`),
-  inbound `:1491-1517`, outbound `:1227-1296`, delete sentinel `:1942-1950`,
+  inbound `:1491-1517`, outbound `:1227-1296`, delete command key `:1942-1950`,
   CLI list `:2366-2412`.
 - Storage externals: `spangap/spangap-core/src/storage.cpp` — `scanExternals`
   `:744-770`, `loadExternals`/`attachAtPath` `:732-783`, dirty routing

@@ -363,7 +363,7 @@ Platform contracts (all verified at the cited lines):
   exact-string match (`build-system/README.md:499-875`). A `switch:` row with
   `default:` on an `s.*` key is auto-seeded via `storageDefault()`. `s.*`
   persisted, `secrets.*` persisted but never sent to the browser, everything
-  else ephemeral (`storage.h:17-19`). **Command sentinels are ephemeral keys
+  else ephemeral (`storage.h:17-19`). **Command keys are ephemeral keys
   (never `s.*`), answered on `<cmd>.error` / `<cmd>.done`** — model:
   `ntp.tz.set` (`ntp.cpp:116-140`). `storageSubscribeChanges` callbacks fire
   on the subscribing task — subscribe from the task that should handle them;
@@ -561,8 +561,8 @@ label: "Bluetooth", short: "BT", order: 12 } ]` (nodes are unowned; order
 slots it between net/10 and reticulum/15). Rows: `s.ble.enable` (switch,
 default 0 — the master switch; with it off the host never starts even if a
 consumer asks), `s.ble.txpower` (dBm, default 9), a pairing button as `set:
-{ key: "ble.pair", value: "60", edge: true }` — **the sentinel key is
-ephemeral `ble.pair`, not `s.ble.pairing`** (sentinels are never `s.*`,
+{ key: "ble.pair", value: "60", edge: true }` — **the command key key is
+ephemeral `ble.pair`, not `s.ble.pairing`** (command keys are never `s.*`,
 README:579-597), handled with the `<cmd>.error`/`<cmd>.done` counter pair.
 Runtime readouts (ephemeral, finished strings): `ble.state_text`, `ble.peers`,
 `ble.bonds`.
@@ -745,7 +745,7 @@ there is no net-side server here).
 Per the straddle docs standard (`build-system/README.md:962-1055`): each new
 straddle is mono-function, so `README.md` (operator) + `INTERNALS.md`
 (maintainer), each opening with the check → do ladder; the README carries the
-exhaustive storage-variable list (settings, runtime keys, sentinels, secrets).
+exhaustive storage-variable list (settings, runtime keys, command keys, secrets).
 
 - `spangap-ble/README.md` — what it owns, settings, CLI, pairing workflow.
   `INTERNALS.md` — why the host starts lazily and the queued-GATT-registration

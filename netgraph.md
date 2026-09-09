@@ -15,7 +15,7 @@ software we do not write, and it is the same facility we serve to them.
 
 Records are never announced. The self-report record, its store and its
 Channel sync stay in the tree and keep working over a Link, but a record
-flooded per node per announce beat does not scale on LoRa (Long Range radio),
+flooded per node per announce tick does not scale on LoRa (Long Range radio),
 and until there is a relay or a central distribution point for network data
 the crawl is how the rest of the graph gets filled in.
 
@@ -529,7 +529,7 @@ synced to the browser — because that is an actual private key.
 
 `allow` is a collection rather than a comma-separated string: the pane binds
 rows to it, and every mutation arrives on a `netgraph.allow.add` /
-`.remove` sentinel that validates before writing, so a malformed hash cannot
+`.remove` command key that validates before writing, so a malformed hash cannot
 reach the list by any route. `s.netgraph.seq` is state; don't seed it.
 
 The community identity hash is published to `netgraph.community.id` once

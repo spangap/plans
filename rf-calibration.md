@@ -57,7 +57,7 @@ measured curve.
 So the calibration selects on `r->femType`, at the moment `femInit` sets it and
 `femBandSelect` refines `maxTxDbm` — the same runtime decision, one step
 further. `CONFIG_LORA_TX_POWER_MAX` stops being the source of truth for the
-ceiling and becomes what it reads as: a board and regulatory cap applied on top.
+limit and becomes what it reads as: a board and regulatory cap applied on top.
 
 ## The data, and where it comes from
 
@@ -81,7 +81,7 @@ Two properties the curve must be allowed to express:
   *less* than chip 20, and 18 / 22 / 24 all land on the same +27.2. A follow-up
   with an R&S NRX power meter across three boards put the whole 18 → 22 climb at
   ~1.1 dB, for **605 → 741 mA**. So `maxTxDbm` is the curve's *maximum*, not its
-  last entry, a request at or above the ceiling resolves to chip 20 and never to
+  last entry, a request at or above the limit resolves to chip 20 and never to
   22, and the inverse in general must return the **lowest** chip setting that
   reaches the requested power.
 - **Net gain collapses at low drive** — 6 dB at chip 1 against the 13 dB the
@@ -187,11 +187,11 @@ is what has to happen to get there.
 | `lora.<n>.tx_power_max`, `r->maxTxDbm` | connector | comes from the curve's top, not `CONFIG_LORA_TX_POWER_MAX` |
 | `lora.<n>.tx_power_min`, `r->minTxDbm` | — | new; the curve's bottom |
 | `r->txPwrNow` | the request | the achieved power, `rfAntennaDbm(chip)` |
-| SUPE `pwrDbm` (hail, gap, train, announce) | the request | follows `txPwrNow` |
+| SUPE `pwrDbm` (hail, gap, burst, announce) | the request | follows `txPwrNow` |
 | `AP_FLOOR_DBM` | chip | `r->minTxDbm` |
 | `apClamp` → `checkOutputPower` | chip range applied to a connector value | clamp against the curve |
 | `USE` / `e->apPwr`, `EST` / `peersEstimateCliff10` | connector, from the above | correct once the above are |
-| `s.lora.assumed_peer_txp` (default 22) | connector, bare-chip guess | keep, but the default is a bare SX1262's ceiling and reads low on a mesh with amplified boards |
+| `s.lora.assumed_peer_txp` (default 22) | connector, bare-chip guess | keep, but the default is a bare SX1262's limit and reads low on a mesh with amplified boards |
 | `r->rssiLast`, `r->snrLast` (`lora_bridge.cpp:261`) | chip | `rfRssiDbm` at the read |
 | `channelRssi()` | chip | `rfRssiDbm` inside the accessor |
 | `r->noiseFloor`, `chFloor[]` | chip | follows `channelRssi` |
@@ -226,7 +226,7 @@ first draft of this plan called for making `SUPE_NOISE_FIGURE_DB` per-radio, on
 the Friis argument that a low-noise amplifier in front makes the system noise
 figure the amplifier's rather than the chip's. Reading the callers says
 otherwise: all four — `apOpenPower`, `apOpenPowerAt`, `apMissWasPower` and the
-train-margin test — ask this about the **far** end, what power must reach a
+burst-margin test — ask this about the **far** end, what power must reach a
 peer for it to decode. A peer's front end is not ours to assume, and crediting
 one with an amplifier it may not have would under-power the link, so a bare
 radio's figure is both correct and the conservative way to be wrong.
@@ -267,7 +267,7 @@ power. So no field is added to the wire for it.
    way.
 4. **`lora.cpp`** — `r->minTxDbm = rfAntennaDbm(chip floor)`, published beside
    `tx_power_max` as `tx_power_min`; clamp `cfgTxp` at both ends with the same
-   warning the ceiling gets.
+   warning the limit gets.
 5. **`lora_bridge.cpp:261` and `channelRssi()`** — convert once. These two cover
    every consumer: SUPE pairs, the bucket ring, CSMA, LoRaMon, the RNode
    endpoint.
@@ -288,7 +288,7 @@ power. So no field is added to the wire for it.
 ## Open items
 
 - **Nothing is measured below chip +1 dBm** on any board. That is the whole
-  bottom of the ladder. Until it is, `minTxDbm` should be the lowest calibrated
+  bottom of the rate table. Until it is, `minTxDbm` should be the lowest calibrated
   point rather than an extrapolation.
 - **No KCT8103L transmit curve exists.** Ours is the revision that needs it.
 - **The fleet can calibrate itself.** Path loss is reciprocal, so every A→B /

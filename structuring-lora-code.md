@@ -17,12 +17,12 @@
    arrives is enqueued; what transmits is dequeued; nothing else passes.
 3. **No lock in the protocol engine.** Single-threaded by contract, serialised by
    the host at the boundary.
-4. **Every decision findable.** Departure policy, budget resolution, power
+4. **Every decision findable.** Departure policy, rate step resolution, power
    control and channel choice each live in one named function with stated inputs.
 5. **The arithmetic is host-testable and the engine is host-runnable**, on a
    machine with no ITS, no FreeRTOS and no radio.
-6. **A detour asks for a radio, not for its own radio.** One hailing channel is
-   one interface; which silicon carries the detour is not the protocol's business.
+6. **A channel switch asks for a radio, not for its own radio.** One calling channel is
+   one interface; which silicon carries the channel switch is not the protocol's business.
 
 ## Executive summary
 
@@ -62,7 +62,7 @@ by construction, not by care.
 | neighbour / peer table | `lora.cpp`, ~40 `nei*` functions |
 | adaptive power | `lora.cpp`, `ap*` plus `supeAp*` |
 | per-channel airtime | `lora.cpp`, `supeRing*`, `supeVerdict*` |
-| SUPE frames, ladder, deadlines | `supe.{h,cpp}` — **already pure, already tested** |
+| SUPE frames, rate table, deadlines | `supe.{h,cpp}` — **already pure, already tested** |
 | SUPE state machine | `lora.cpp`, ~2000 lines of `supe*` |
 | telemetry / LoRaMon | `lora.cpp`, `loraMon*`, `publish*` |
 | CLI | `lora.cpp`, `cli*` |
@@ -103,14 +103,14 @@ engine exists, so all eight are host-testable without a radio.
 
 | # | Module | Files | Answers |
 |---|---|---|---|
-| 0 | **supe core** | `supe.{h,cpp}` | frame codec, ladder resolution, deadlines. Pure, exists, keeps its host tests |
+| 0 | **supe core** | `supe.{h,cpp}` | frame codec, rate table resolution, deadlines. Pure, exists, keeps its host tests |
 | 1 | **radio** | `lora_radio.{h,cpp}` | chip dispatch, RadioLib calls, family capabilities, time-on-air. Knows nothing of Reticulum or SUPE |
 | 2 | **radio pool** | `lora_pool.{h,cpp}` | `grant(band, channel, ms) → radio \| none`. Size 1 until Phase 6 |
 | 3 | **queue** | `lora_queue.{h,cpp}` | holds packets, refcounts, per-peer caps, backpressure. No radio knowledge at all |
 | 4 | **peer table** | `lora_peers.{h,cpp}` | `family`, `speaks_supe`, `path_loss`, `last_heard`, `absent_until` |
-| 5 | **channel plan** | `lora_chanplan.{h,cpp}` | `channels(regime)`, `max_bw`, `txp_cap`, `recently_quiet`, `reuse_gap_ok` |
+| 5 | **channel plan** | `lora_chanplan.{h,cpp}` | `channels(channel plan)`, `max_bw`, `txp_cap`, `recently_quiet`, `reuse_gap_ok` |
 | 6 | **airtime** | `lora_airtime.{h,cpp}` | `may_i(ch, ms)`, `record(ch, ms)`. Counts aborted transmissions |
-| 7 | **medium access** | `lora_csma.{h,cpp}` | hailing channel only: `may_i_now()`, `hold_until(t)` |
+| 7 | **medium access** | `lora_csma.{h,cpp}` | calling channel only: `may_i_now()`, `hold_until(t)` |
 | 8 | **telemetry** | `lora_mon.{h,cpp}` | the event ring; LoRaMon and the graph feed |
 | 9 | **bridge** | `lora_bridge.{h,cpp}`, `lora_rnode.{h,cpp}` | ITS ↔ queue, RNode serial ↔ queue, routing rule |
 | 10 | **engine** | `supe_engine.{h,cpp}` | the state machine. Calls all of the above; nothing calls it |
@@ -136,7 +136,7 @@ Every piece of state has exactly one owner. Naming them is most of the work.
 | **peer table** | per-peer aggregates: family, SUPE support, path loss, last power used, last heard, absence record | peer table |
 | **channel state** | per channel: last sensed level, last used (reuse gap), airtime accumulator | channel plan + airtime |
 | **event ring** | recent TX/RX with channel, power, SF/BW, RSSI/SNR | telemetry |
-| **session state** | one per active detour, ephemeral | engine |
+| **session state** | one per active channel switch, ephemeral | engine |
 
 "Where did that packet go out, and at what power" is the **event ring**, not the
 packet header — the packet is freed at transmit. The graph feed is already 90 % of
@@ -177,7 +177,7 @@ so both directions of the rnsd leg qualify:
 Deliberately absent, and each for a reason:
 
 - **no modulation, channel or power.** Not known at enqueue; decided at
-  negotiation for a whole train. A field here invites setting it early and then
+  negotiation for a whole burst. A field here invites setting it early and then
   two code paths disagreeing about which is authoritative.
 - **no expiry.** `first_seen_ms` is the fact; age limits are read by whoever
   looks.
@@ -186,7 +186,7 @@ Deliberately absent, and each for a reason:
   is needed for dispatch and lives in the receive path, not here.
 
 **Routing rule**, stated once and applied at ingress: *a packet crosses only within
-its radio's group — never between rnsd interfaces, never between hailing channels.
+its radio's group — never between rnsd interfaces, never between calling channels.
 That is rnsd's job.* With the rule stated, `refs` is one lookup at ingress.
 
 **Backpressure has two levels**, because the congestion is per-peer and the signal
@@ -254,7 +254,7 @@ Mark's RNode.
 
 ```c
 enum { DETOUR_NO, DETOUR_NOW, DETOUR_WAIT };
-int should_detour(const PeerView*, const QueueView*, const ChanView*,
+int should_channel switch(const PeerView*, const QueueView*, const ChanView*,
                   uint32_t* wait_until_ms);
 ```
 
@@ -271,13 +271,13 @@ should be built once rather than twice:
 | Change | Touches |
 |---|---|
 | `SUPE_GRANT` (`0xC5`); `HERE` deleted, `0xC8` burned | core codec, engine |
-| `SUPE_START` carries family/ceiling and a byte **load** in 32-byte units, no duration | core codec, engine, queue (load is computed from it) |
-| the peer chooses channel and budget; refusal with reason | engine, channel plan, airtime |
+| `SUPE_START` carries family/limit and a byte **load** in 32-byte units, no duration | core codec, engine, queue (load is computed from it) |
+| the peer chooses channel and rate step; refusal with reason | engine, channel plan, airtime |
 | both sides send `MANIFEST`; `count 0` closes, `count 0 + length` is the grace | engine |
-| four path-loss pairs per detour | peer table |
-| absence ladder: three requests, power up and ceiling down, then a minute of drop; one request thereafter; cancelled by any evidence of life | engine, peer table |
+| four path-loss pairs per channel switch | peer table |
+| absence rate table: three requests, power up and limit down, then a minute of drop; one request thereafter; cancelled by any evidence of life | engine, peer table |
 | `START` adapts in power, `GRANT` never does | power control, engine |
-| ladder resolution integer-only, ties stated, golden vectors normative | core, host tests |
+| rate table resolution integer-only, ties stated, golden vectors normative | core, host tests |
 | hold released early by the access procedure's fixed interval | medium access |
 | airtime counts aborted transmissions | airtime |
 
@@ -338,7 +338,7 @@ and the deadlock class is unreachable rather than avoided.
 ### Phase 3 — the pure core, extended
 
 Ladder resolution to integer rules with a stated tie-break; generate
-`supe-ladder-vectors.txt` over the full cross-product; extend the existing host
+`supe-rate table-vectors.txt` over the full cross-product; extend the existing host
 tests to the new frames (GRANT codec, the load quantisation, the deadline table
 of SUPE.md §14.7). No device behaviour changes in this phase at all.
 
@@ -366,9 +366,9 @@ that ever spoke them is on this bench, and the 14-day expiry retires stale build
 by itself.
 
 *Done when*, in two halves: **host-verifiable** — a full bidirectional transaction
-including a refusal, an absence ladder and the count-0 close runs against the stub
+including a refusal, an absence rate table and the count-0 close runs against the stub
 host, and the device build is clean. **On-air** — two devices complete a
-bidirectional detour, which is the user's to run.
+bidirectional channel switch, which is the user's to run.
 
 ### Phase 5 — access order and the ledger
 
@@ -382,7 +382,7 @@ protocol rewrite.
 ### Phase 6 — the radio pool (optional)
 
 Make `grant(band, channel, ms)` real. `SUPE.worker` marks a radio as available;
-workers present no interface to the daemon and serve any hailing channel in their
+workers present no interface to the daemon and serve any calling channel in their
 own band. Interface number stays equal to radio number, so numbering has gaps and
 nobody has to hold a mapping in their head.
 
@@ -393,7 +393,7 @@ additive rather than a second rewrite.
 
 - **Cross-band workers.** 868 handing off to 2.4 GHz is a routing problem with a
   different peer set on each side. Workers serve their own band.
-- **Retransmission inside a detour.** Packets are freed at transmit; the layers
+- **Retransmission inside a channel switch.** Packets are freed at transmit; the layers
   above retry. If this ever changes, it changes the queue's contract and should be
   its own decision.
 - **A generic message bus between modules.** The dependency graph in §2 is a
@@ -428,7 +428,7 @@ context in debug builds rather than trusting a comment.
   now known — we stop consuming, the packet link backs up, rnsd's send times out
   — but what rnsd *does* on that timeout is not. `onTransportRecv` and callers in
   `rns/esp-idf/src/rnsd.cpp` are where to read before sizing any cap.
-- **What `should_detour` should decide** (§5). Simulation, not argument.
+- **What `should_channel switch` should decide** (§5). Simulation, not argument.
 - **Whether the observer's identity inference survives contact with the reference
   implementation.** The virtual RNode interface of `simulation.md` §6 is how to
   find out.

@@ -177,7 +177,7 @@ works, the rest is UI.
 > consumer never hangs waiting for a response that can't come.
 
 Pure transport + state, copying the lxmf task model (storage-as-API,
-cmd sentinels, single `itsPoll` wait point, **zero mR includes** — goes
+cmd command keys, single `itsPoll` wait point, **zero mR includes** — goes
 through rnsd's byte-array API).
 
 **Announce-drift feed:** subscribe to `RNSD_PORT_ANNOUNCES`, filter to
@@ -202,7 +202,7 @@ zero air time. Cap by count/bytes (PSRAM). `nomad.cmd.reload` bypasses.
 - `s.nomad.announce_node` / `s.nomad.node_name` — only relevant to the
   *server* phase; omit for now.
 - `nomad.nodes.*`, `nomad.nav.*`, `nomad.page.*` — ephemeral.
-- cmd sentinels: `nomad.cmd.go`, `.reload`, `.bookmark.add/.del`,
+- cmd command keys: `nomad.cmd.go`, `.reload`, `.bookmark.add/.del`,
   `.back` (history is frontend-side; firmware is stateless re history).
 
 **ITS ports:** one consumer aux port for request responses + resource
@@ -226,7 +226,7 @@ inbound (reuse `rnsd_link_resource_done_t` shape).
 > from Status → Nomad Browser), and the **TS Micron→HTML renderer**
 > [`lib/micron.ts`](../../web-interface/src/lib/micron.ts). State is read
 > from the storage mirror (`nomad.nodes.*`, `s.nomad.bookmarks.*`,
-> `nomad.nav.*`, `nomad.page.body`), writes are `nomad.cmd.*` sentinels —
+> `nomad.nav.*`, `nomad.page.body`), writes are `nomad.cmd.*` command keys —
 > no new DataChannel. The renderer typechecks clean (`tsc --strict`);
 > full SPA build is validated by the user's `idf.py build`. **Open
 > decision resolved → renderer is reticulous-local, not `spangap-browser`:**
@@ -307,7 +307,7 @@ The C++ parser is browser-only (server emits Micron, never parses).
 >   parses `url`fields`vars`, gathers the named field values (`*`=all) + var
 >   literals, and calls `useNomad.submit` (stages `nomad.submit.*` + triggers).
 > - **LCD**: fields render as LVGL textareas (trackball/keyboard); a form
->   link gathers them + vars and writes the same submit sentinels.
+>   link gathers them + vars and writes the same submit command keys.
 > - **Test**: `tests/test_nomad_forms.py` + `nomad_peer.py` `/page/form.mu`
 >   prove the map-as-3rd-element contract round-trips through real RNS
 >   (a dict → handler reads `field_user`/`var_csrf`) — **green**.

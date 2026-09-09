@@ -14,22 +14,22 @@
 > (our name for RNode's backoff, §5); e.r.p. = effective radiated power;
 > OBW = occupied bandwidth; DFS = dynamic frequency scaling.
 
-**There will always be two regimes, and they are not variants of one design.**
+**There will always be two channel plans, and they are not variants of one design.**
 
-- **The reticulum channel** — one fixed frequency, camped on permanently, shared
+- **The reticulum channel** — one fixed frequency, sitting on permanently, shared
   with third-party Reticulum nodes, carrying broadcast traffic. Frequency
-  agility is impossible here by definition: it is the rendezvous point, and a
+  agility is impossible here by definition: it is the scheduled exchange point, and a
   node that hops off it stops being reachable. §1.
-- **The nine AFA channels** — used in scheduled detours for unicast bursts, no
+- **The nine AFA channels** — used in scheduled channel switchs for unicast bursts, no
   node camps on them, every visit is negotiated on the reticulum channel first.
   §2.
 
-The regulatory regime differs accordingly: duty cycle on the first, PSA + AFA on
+The regulatory channel plan differs accordingly: duty cycle on the first, PSA + AFA on
 the second. §3 is what the hardware allows either of them to do.
 
 **Contention is arbitrated on the reticulum channel and nowhere else.** Every
-detour is announced there first, in a small blip, on the one channel where
-carrier sense and backoff run — so the hailing channel is both the bottleneck
+channel switch is announced there first, in a small blip, on the one channel where
+carrier sense and backoff run — so the calling channel is both the bottleneck
 and the scheduler. What it hands out is access to nine channels running at many
 times its own rate, a space enormously larger in slot-time than the announcements
 gating it can ever fill. **There is therefore no contention algorithm on the
@@ -86,15 +86,15 @@ EN 300 220 whatsoever:
 - The interval between the last sample and the carrier coming up is
   **unbounded** — up to a full slot of staleness plus `startTransmit` latency,
   which at SF10+ is 90–100 ms against a 5 ms allowance.
-- **No transmit budget of any kind is enforced.** APPC keeps two 7500 ms bins,
+- **No transmit allowance of any kind is enforced.** APPC keeps two 7500 ms bins,
   ~15 s of history, purely to pick a contention band; they reset on any
   `s.lora.*` write via `applyConfig`. There is no hour, no cap, no refusal.
-- `lbt` and `appc` are **live settings**. A regime that can be switched off from
+- `lbt` and `appc` are **live settings**. A channel plan that can be switched off from
   the CLI cannot be the basis of a declaration.
 
 So today the device transmits as much as it likes, whenever the channel sounds
 quiet to a threshold of its own choosing. That is fine on a bench and fine under
-a licence-exempt regime we are not claiming; it is not compliant with either
+a licence-exempt channel plan we are not claiming; it is not compliant with either
 alternative on offer.
 
 ### 1.3 What has to be added to be compliant here
@@ -141,9 +141,9 @@ than 25 mW — 100× the power and 10× the airtime of the K and N entries.
 EN 300 220-2 table B.1 and the national table; I am quoting it from memory and
 it is the single most consequential number in this file.
 
-If the hailing channel lands there, the trade is exactly right for a broadcast
+If the calling channel lands there, the trade is exactly right for a broadcast
 announce channel: 360 s/h at 13 dB more power, no sensing timing discipline, no
-dead-time budget, no absolute threshold. Even the 1 % entries at 36 s/h are
+dead-time allowance, no absolute threshold. Even the 1 % entries at 36 s/h are
 workable for announce traffic. LBT stays in place on top as a pure throughput
 mechanism (§5) — unconstrained by any declaration, free to keep its own stricter
 relative threshold, and costing nothing regulatory since being quieter than
@@ -157,7 +157,7 @@ What that requires, concretely:
    of one hour" **[verify — whether the standard permits a fixed hourly reset,
    which is materially cheaper to implement]**.
 2. **A refusal path**, distinct in telemetry from `lbt_timeout`'s contention
-   shed. Out-of-budget and can't-win-the-channel are different conditions and
+   shed. Out-of-allowance and can't-win-the-channel are different conditions and
    the operator needs to tell them apart.
 3. **Fixed, non-live parameters.** The duty-cycle percentage and the ledger
    behaviour compiled in, not settable; any override behind an explicitly
@@ -173,12 +173,12 @@ What that requires, concretely:
 Point 5 is the one that is easy to skip and shouldn't be. Everything else is
 mechanism; this is the input the mechanism needs.
 
-## 2. The AFA + PSA regime on the nine channels
+## 2. The AFA + PSA channel plan on the nine channels
 
 ### 2.1 The sequence the regulation mandates
 
 ```
-frame queued for a burst detour
+frame queued for a burst channel switch
   │
   ├─ ledger      this channel's trailing-hour Tcum_on < 100 s?
   │              and ≥100 ms since our last TX on this channel (Toff)?
@@ -193,15 +193,15 @@ frame queued for a burst detour
   │
   ├─ dead time   ≤5 ms, declared and measured — carrier up
   │
-  ├─ Ton         ≤1 s single transmission, ≤4 s dialogue or polling sequence
+  ├─ Ton         ≤1 s single transmission, ≤4 s immediate exchange or polling sequence
   │
   └─ TxDone      credit the ledger, stamp this channel's Toff
 ```
 
 Every step above is mandated, and **that is the entire transmit path on these
 channels** — there is nothing of ours layered on top. No APPC, no contention
-window, no tracked-floor sense. The blip that bought this detour was already
-carrier-sensed on the hailing channel, and that is where the arbitration
+window, no tracked-floor sense. The blip that bought this channel switch was already
+carrier-sensed on the calling channel, and that is where the arbitration
 happened.
 
 The CCA is therefore doing one job only: it is a **legality condition**, with a
@@ -223,7 +223,7 @@ the nine-channel plan exists.
 
 The choice is per equipment declaration, not per packet. **[verify]** whether a
 single device may declare duty cycle on one channel and LBT+AFA on nine others,
-which is precisely the two-regime arrangement this file assumes throughout. If
+which is precisely the two-channel plan arrangement this file assumes throughout. If
 it may not, the whole design needs revisiting. Together with §1.3's question
 about LBT-without-AFA these two bound the design from both sides: one asks
 whether the reticulum channel can ever escape its duty cycle, the other whether
@@ -261,7 +261,7 @@ and the two loops share a variable rather than composing cleanly.
 | Minimum deferral period after a busy CCA | = CCA interval |
 | Dead time, CCA end → transmit start | declared, ≤ 5 ms |
 | Ton_max, single transmission | 1 s |
-| Ton_max, dialogue or polling sequence | 4 s |
+| Ton_max, immediate exchange or polling sequence | 4 s |
 | Toff_min, same operating frequency | 100 ms |
 | Max Tcum_on | 100 s per hour per 200 kHz of spectrum |
 
@@ -273,7 +273,7 @@ on the bench. §3.3 is what stands in the way of it on this hardware.
 
 **Toff_min is per operating frequency**, which is a second reason AFA earns its
 place: 100 ms of enforced silence on the channel just used costs nothing when
-there are eight others. On a single fixed channel it would be a hard ceiling on
+there are eight others. On a single fixed channel it would be a hard limit on
 frame rate.
 
 ### 2.5 The cumulative cap
@@ -286,26 +286,26 @@ measurement window can straddle two channels and sum their on-time against one
 cap.
 
 100 s/h is 2.78 %. That is not a limit a busy node reaches by accident — a
-saturated burst detour walks into it — so the ledger is a real gate, not a
+saturated burst channel switch walks into it — so the ledger is a real gate, not a
 formality. It is also the number that makes §5's calibration mismatch matter.
 
-### 2.6 The dialogue exemption
+### 2.6 The immediate exchange exemption
 
-The 4 s Ton_max for a "dialogue or polling sequence" is the regulator
+The 4 s Ton_max for a "immediate exchange or polling sequence" is the regulator
 acknowledging that a request/response exchange cannot re-run CCA between every
-frame without the gaps swallowing it. Within a dialogue, subsequent
+frame without the gaps swallowing it. Within an immediate exchange, subsequent
 transmissions may follow without a fresh CCA up to that 4 s **[verify — the
 exact conditions, in particular the maximum permitted gap between frames and
 whether both ends may rely on it]**.
 
-This is load-bearing for [`SUPE.md`](SUPE.md): its detour is an offer, a
-readiness frame, a manifest and a back-to-back train, explicitly with **no carrier
-sense once the pair is off the hailing channel**, sized at up to one second of
-train.
-That structure is legal under PSA only as a dialogue, and both directions
+This is load-bearing for [`SUPE.md`](SUPE.md): its channel switch is an offer, a
+readiness frame, a manifest and a back-to-back burst, explicitly with **no carrier
+sense once the pair is off the calling channel**, sized at up to one second of
+burst.
+That structure is legal under PSA only as an immediate exchange, and both directions
 together must fit inside 4 s. Reading this clause precisely is a prerequisite
 for building the burst channel, not a detail to settle afterwards — if the
-exemption is narrower than assumed, the train needs a CCA and a ≤5 ms dead time
+exemption is narrower than assumed, the burst needs a CCA and a ≤5 ms dead time
 between every frame, and the entire timing argument collapses.
 
 ### 2.7 What gets declared
@@ -330,8 +330,8 @@ cost.
 The SX1262 has **a single demodulator**: it listens for exactly one
 `(SF, BW, frequency)` at a time. Two nodes on different spreading factors cannot
 hear each other at all — not slower, silent. This is the fact that shapes
-everything else, and it is why `proper-air-protocol.md` negotiates every detour
-on the hailing channel before either end retunes.
+everything else, and it is why `proper-air-protocol.md` negotiates every channel switch
+on the calling channel before either end retunes.
 
 **A second radio does not cost an SPI host.** SPI is a bus: `spi_master` drives
 several devices off one controller with a chip-select each, and every radio
@@ -348,7 +348,7 @@ What actually bounds it:
   A's RSSI read. Harmless for ordinary traffic, but §3.3's CCA→transmit window
   is the one place where a few hundred µs of queueing is a compliance failure,
   so that window needs the bus to itself.
-- **RF isolation, which is the real ceiling.** Two radios 700 kHz apart on one
+- **RF isolation, which is the real limit.** Two radios 700 kHz apart on one
   board cannot transmit and receive simultaneously. Antenna-to-antenna isolation
   at this size is perhaps 15–25 dB, so +22 dBm out of one arrives at the other's
   input around 0 dBm against a wanted signal near −120 dBm — not desense,
@@ -376,7 +376,7 @@ transceiver-timing table]**.
 
 **Call it ~0.25 ms per retune.** Against a 5 ms dead-time allowance that is
 comfortable — the retune belongs *before* the CCA, not between the CCA and the
-transmit, so it is not even competing for that budget (§2.1). **AFA is cheap on
+transmit, so it is not even competing for that allowance (§2.1). **AFA is cheap on
 the transmit side.** The hard part is reception, and that is §3.4.
 
 ### 3.3 The 160 µs and the 5 ms, on FreeRTOS
@@ -388,14 +388,14 @@ which is entirely tick-paced — cannot be stretched to produce them.
 The 160 µs is easy and almost free: **three back-to-back `getRSSI(false)` reads
 span ~165 µs** at 55 µs per transaction, which is a defensible spanning
 measurement rather than a point sample plus a delay. The cost is already
-budgeted; today's single sample is one third of it.
+allowed for; today's single sample is one third of it.
 
 The 5 ms is where the platform fights back. Threats to the CCA→carrier-up
 window, in rough order of how likely each is to bite:
 
 - **Flash operations block the instruction cache.** A storage commit erasing a
   sector stalls any code executing from flash for milliseconds. This alone can
-  blow the budget, and it is triggered by ordinary unrelated activity. The final
+  blow the allowance, and it is triggered by ordinary unrelated activity. The final
   sequence has to be `IRAM_ATTR` and must not touch flash-resident data.
 - **WiFi and BT.** On a build with `spangap-net` staged, the radio stack takes
   CPU in bursts that are not bounded at 5 ms, and it runs at high priority.
@@ -403,7 +403,7 @@ window, in rough order of how likely each is to bite:
   between the CCA and `startTransmit` is a violation.
 - **DFS and light sleep.** Sensing is deliberately read at the DFS floor today;
   the CCA→TX window needs an `esp_pm_lock` held across it or the CPU may be at a
-  fraction of full clock and the wake latency counts against the budget.
+  fraction of full clock and the wake latency counts against the allowance.
 
 The shape of the fix: the backoff machine grants **candidacy**, and a short
 final sequence — three RSSI reads, threshold compare, `startTransmit` — runs in
@@ -422,7 +422,7 @@ Three separate answers, and the first is the one that surprises people.
 **Regulatory: unlimited.** Tcum_on, Toff and the CCA all constrain
 *transmission*. Nothing in EN 300 220 limits listening. Monitoring is a link
 availability problem, not a compliance one, and no amount of receive activity
-touches the 100 s/h budget.
+touches the 100 s/h allowance.
 
 **Simultaneously, in hardware: one per radio.** A radio costs a chip select on
 the shared bus, four GPIOs, and the in-band transmit restriction — §3.1.
@@ -463,21 +463,21 @@ against the 100 s/h ledger.
 
 So: **do not scan the nine channels.** The architecture the hardware wants is
 exactly the one `proper-air-protocol.md` already describes — camp on the
-reticulum channel, negotiate the detour there, retune both ends by agreement,
-return. Nobody listens on an AFA channel except by appointment. The two-regime
+reticulum channel, negotiate the channel switch there, retune both ends by agreement,
+return. Nobody listens on an AFA channel except by appointment. The two-channel plan
 split in this file is not only a regulatory convenience; it is what a
 single-demodulator radio forces.
 
-If a second radio is fitted, the natural division is one camped on the reticulum
+If a second radio is fitted, the natural division is one sitting on the reticulum
 channel permanently and one roaming the nine. That removes the blackout while
 the roaming radio *receives*, but not while it transmits: §3.1's isolation
-problem means a +22 dBm burst on an AFA channel blocks the hail-camped receiver
+problem means a +22 dBm burst on an AFA channel blocks the hail-sitting receiver
 a few MHz away just as thoroughly as retuning it would. Two radios convert the
 blackout from "whenever we visit an AFA channel" to "whenever we transmit on
-one", which is a real gain — the listening half of a burst detour stops costing
+one", which is a real gain — the listening half of a burst channel switch stops costing
 hail coverage — but it is not the clean separation it first looks like.
 
-### 3.5 Dipping out of the hailing channel
+### 3.5 Dipping out of the calling channel
 
 The scanning arithmetic above rules out *monitoring* the nine, but it does not
 rule out a brief excursion. Taking the reticulum channel at SF7/BW125 — the
@@ -497,7 +497,7 @@ Against SF7/BW125, where `T_s` = 1.024 ms and an 8-symbol preamble is
 window, so the largest absence that can never cause a miss is
 `(P − d)·T_s` = **4.10 ms** at `d` = 4, or 6.14 ms at `d` = 2.
 
-**So yes, comfortably — one dip costs 0.7 ms of a 4.10 ms budget, 17 % of it.**
+**So yes, comfortably — one dip costs 0.7 ms of a 4.10 ms allowance, 17 % of it.**
 
 **The asymmetry is why.** A CCA needs 160 µs; preamble detection needs 4
 symbols, which at SF7/BW125 is 4.10 ms — **25× longer**. That ratio is what
@@ -505,9 +505,9 @@ makes §3.4's monitoring impossible and this excursion nearly free. We are not
 trying to *hear* anything on the far channel, only to measure energy, and energy
 has no acquisition time.
 
-**Where this matters** is the aborted detour. The mandated sequence in §2.1
+**Where this matters** is the aborted channel switch. The mandated sequence in §2.1
 retunes, assesses, and transmits; if the CCA comes back busy there is nothing to
-transmit and we return to hail having been away ~0.7 ms. **A refused detour
+transmit and we return to hail having been away ~0.7 ms. **A refused channel switch
 costs no hail coverage**, so the CCA can be honoured strictly — deferring and
 retrying — without the compliance path quietly eating into the channel we
 actually camp on. That is the only reason the arithmetic is worth having: it is
@@ -521,9 +521,9 @@ excursion, and once a header is valid we are committed for the whole payload —
 ~400 ms for 255 bytes at SF7/BW125. The existing `splitPending` half-duplex
 guard is the same shape and the same place to hang it.
 
-The budget scales with `T_s`, so a slower hailing channel is strictly easier and
+The allowance scales with `T_s`, so a slower calling channel is strictly easier and
 the arithmetic above is the tight case. It would stop being comfortable only if
-the hailing channel moved to BW500, where the 4-symbol budget falls to 1.02 ms
+the calling channel moved to BW500, where the 4-symbol allowance falls to 1.02 ms
 and a single 0.7 ms dip consumes 69 % of it.
 
 ## 4. Sensing techniques
@@ -571,7 +571,7 @@ and "should we transmit" are computed from entirely different measurements.
 | Purpose | legality | not colliding |
 | Blind to | sub-threshold LoRa (most of it) | strong non-LoRa it can't distinguish |
 
-Ours is ~18 dB stricter, which is the right direction — PSA sets a ceiling on
+Ours is ~18 dB stricter, which is the right direction — PSA sets a limit on
 what we may ignore, never a floor — but it still cannot see a link running 20 dB
 under the noise.
 
@@ -620,7 +620,7 @@ want to ask it:
 
 - **On the nine AFA channels we do not know what anyone else is running.**
   These are ordinary licence-exempt SRD spectrum with arbitrary occupants —
-  LoRaWAN gateways on their own SF ladder, metering and telemetry FSK, the RFID
+  LoRaWAN gateways on their own SF rate table, metering and telemetry FSK, the RFID
   interrogators that dominate 865–868, proprietary everything. We have no way to
   know their modulation, let alone their spreading factor. CAD tuned to our
   config is blind to all of it — not less sensitive, blind — so it returns
@@ -640,7 +640,7 @@ clear IRQ → `setCad` → read result is ≈6 transactions against 1, and each 
 drops the receiver out of RX, so a CAD-driven loop deafens itself at exactly the
 moment it is characterising the channel. Measured, not assumed.
 
-**So RSSI is the only realistic sense we have**, on both regimes, and §4.2's
+**So RSSI is the only realistic sense we have**, on both channel plans, and §4.2's
 blindness to sub-noise-floor LoRa is not a gap we can close — it is a permanent
 property of the design to be absorbed by retransmission (§4.5) rather than
 engineered away.
@@ -659,7 +659,7 @@ traffic we should defer to and could decode from unknown energy.
 It is not a pollable sense: it fires only once a preamble has been detected and
 the correlator has locked, which is a statement about a frame already arriving.
 Free and passive, but not something a backoff machine can ask a question of —
-and since the only backoff machine we run is the hailing channel's, that is
+and since the only backoff machine we run is the calling channel's, that is
 where the distinction has anywhere to go. On the nine it changes nothing: the
 CCA is an energy threshold and does not care whose frame it is.
 
@@ -720,8 +720,8 @@ equivalent and are not getting one: their transmit path is §2.1's, and the
 arbitration that would otherwise belong on them already happened in the blip.
 
 That confinement suits the mechanism. The bands were calibrated by RNode for a
-regime with no airtime cap, and against a hailing channel at 10 % duty cycle
-they sit about right — band 2 opens at 8 % own airtime, roughly where the budget
+channel plan with no airtime cap, and against a calling channel at 10 % duty cycle
+they sit about right — band 2 opens at 8 % own airtime, roughly where the allowance
 itself starts to bind, so the backoff lengthens as the ledger tightens rather
 than fighting it.
 
@@ -731,7 +731,7 @@ Nothing here is built.
 
 ### 6.1 The transmit path
 
-The two regimes share the ledger and nothing else.
+The two channel plans share the ledger and nothing else.
 
 ```
 reticulum channel                  AFA channel
@@ -763,26 +763,26 @@ SPI other than the transmit setup itself.**
 ### 6.2 The airtime ledger
 
 Per channel, sliding over an hour, credited with the same
-`loraAirtimeSeconds()` figure APPC already computes at TxDone. Both regimes need
+`loraAirtimeSeconds()` figure APPC already computes at TxDone. Both channel plans need
 one; only the cap differs (10 % of the hour vs 100 s).
 
 RNode's full **480-bin ring at 7500 ms** is exactly the right shape and exactly
 what this straddle currently discards — we keep only the two live bins APPC
 reads, because the long-term duty-cycle lock upstream feeds with it was never
 implemented. This is that consumer arriving. 480 bins × 10 channels × 4 bytes is
-~19 kB, affordable; but 7.5 s granularity against a 100 s budget is 7.5 %
+~19 kB, affordable; but 7.5 s granularity against a 100 s allowance is 7.5 %
 worst-case quantization error, so the bins want to be finer *or* the effective
 cap set a bin's worth below the legal one.
 
 It drives exactly one behaviour: **refuse when the channel is at cap.** A
-refusal on one of the nine sends the detour to another of them, which is AFA
-working as intended and not a balancing policy — first channel with budget is a
+refusal on one of the nine sends the channel switch to another of them, which is AFA
+working as intended and not a balancing policy — first channel with allowance is a
 fine rule, and any cleverer one would be the fairness algorithm these channels
 are not getting.
 
 Bins must survive a radio restart or the cap is evadable by accident, which is
 worse than evadable on purpose. Across a *reboot* is a judgement call: a device
-that reboots hourly and starts each hour with a clean budget is not obviously
+that reboots hourly and starts each hour with a clean allowance is not obviously
 compliant. **[verify]** whether the standard says anything about power-cycle
 behaviour; absent that, persisting to storage on a coarse schedule is the
 defensible reading — and note that the storage write itself is a threat to §3.3's
@@ -791,14 +791,14 @@ dead-time window, so it must not happen anywhere near a transmit.
 ### 6.3 Channel state
 
 Per channel: `last_tx_end_ms` (Toff), `spent_this_hour`, the bin ring, the
-absolute CCA threshold for its bandwidth, and which regime it is under. Ten
+absolute CCA threshold for its bandwidth, and which channel plan it is under. Ten
 entries — the reticulum channel plus the nine — with the first flagged as
 duty-cycle, no-AFA, never-leave. There is no per-channel occupancy estimate and
 no scan state, because nothing reads them.
 
 ### 6.4 Task ownership
 
-> Regime 0, the regime tables and the airtime ring are in
+> Channel plan 0, the channel plan tables and the airtime ring are in
 > [`SUPE.md`](SUPE.md) §14. Where that file gives a concrete size or cadence it
 > supersedes the sketch here.
 
@@ -857,8 +857,8 @@ pressure is correct and must be counted; blocking the radio task is not.
    (§1.3). Sets the duty cycle it lives under; currently a user setting with no
    default.
 3. **Whether one device may declare duty cycle on one channel and LBT+AFA on
-   nine** (§2.2). The two-regime design assumes yes throughout.
-4. **The dialogue exemption's exact conditions** (§2.6) — gates the burst
+   nine** (§2.2). The two-channel plan design assumes yes throughout.
+4. **The immediate exchange exemption's exact conditions** (§2.6) — gates the burst
    protocol.
 5. **The adaptive-power threshold relaxation** (§2.3) — couples PSA to
    `adaptive-power.md`.
@@ -866,12 +866,12 @@ pressure is correct and must be counted; blocking the radio task is not.
    transmission's OBW or merely cover it? Decides whether one wide sense can
    clear a narrow transmission.
 7. **Sliding vs fixed hour** (§1.3) — materially different implementations, and
-   the answer applies to both regimes' ledgers.
+   the answer applies to both channel plans' ledgers.
 8. **Ledger persistence across power cycles** (§6.2).
 9. **Ton_max at high SF.** A 255-byte SF12/BW125 frame is well past 1 s of air.
-   Either the PSA path caps frame size per modem config, or high-SF rungs are
+   Either the PSA path caps frame size per modem config, or high-SF steps are
    PSA-ineligible — which contradicts the single-declaration reading. Needs
-   resolving before the modem ladder is frozen.
+   resolving before the modem rate table is frozen.
 10. **The SX126x preamble detector's real symbol requirement** (§3.4). The
     scanning arithmetic is only as good as that number.
 

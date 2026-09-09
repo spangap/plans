@@ -27,7 +27,7 @@ What it buys:
 
 - Messages arrive while the user's device is off; the server delivers their
   outbound while they are away.
-- The roaming client advertises nothing, so no announce beat from a moving
+- The roaming client advertises nothing, so no announce tick from a moving
   device and no waiting for paths to propagate to it. A link initiator needs no
   inbound path; responses ride the link home.
 
@@ -315,7 +315,7 @@ only ever *edited* on the client, because it is the only end with a UI:
 enabled. `CONFIG` pushes them on change and reconciles on connect; the server
 pushes back what only it knows — real announce state, propagation results,
 quota state, what is actually on the air — so the client displays truth rather
-than intent. The announce beat is not account config: it belongs to each
+than intent. The announce tick is not account config: it belongs to each
 interface of whichever device airs the announce.
 
 Device-scoped stay local: notification sound, inline threshold, link tuning, UI.

@@ -134,7 +134,7 @@ loss comes out too large, so A asks for *more*, never less, and it parks at
 anyone having to signal the clamp.
 
 **Recovery is omission.** On a retransmit, simply don't prefix — the peer returns
-to max. One step, immediate, no escalation ladder and no accumulator, matching
+to max. One step, immediate, no escalation rate table and no accumulator, matching
 §4.3's "failure → jump up now, and significantly" for free. Drop your own power
 back to max on the same retransmit and both directions recover together. This
 matters because the step time is not ours: `DEFAULT_PER_HOP_TIMEOUT` is 6 s, so
@@ -144,13 +144,13 @@ connectivity framing makes.
 
 ### 3a.1 The frame
 
-Four bytes, normal modem regime (sync 0x42, explicit header, preamble 12) so it
+Four bytes, normal modem channel plan (sync 0x42, explicit header, preamble 12) so it
 rides back to back with an RNS frame without a modem reconfigure:
 
 | byte | field | encoding |
 |---|---|---|
 | 0 | magic `0x04` | — |
-| 1 | suggested txpwr | `int8` dBm; sentinel = no suggestion |
+| 1 | suggested txpwr | `int8` dBm; command key = no suggestion |
 | 2 | rssi of the peer's last frame | `probeEncRssi` — unsigned negated dBm; `0` = none |
 | 3 | snr of the peer's last frame | `probeEncSnr` — `int8` quarter-dB |
 
@@ -168,7 +168,7 @@ to 2 would save nothing at all.
 
 - **Trigger on the reply power you want, not on your own.** The byte describes
   the *peer's* transmission. Usually correlated with your own power since the
-  path is reciprocal, but not identical — the two ends' noise floors and ceilings
+  path is reciprocal, but not identical — the two ends' noise floors and limits
   differ.
 - **Never when you'd suggest max.** Absence already means max, so the frame would
   be 35 ms saying nothing.
@@ -251,7 +251,7 @@ the reciprocity each is relying on is exactly what stops holding when both ends
 move. The margins and timidity below buy time before that happens; they do not
 prevent it, and there is no signal that tells either node it happened.
 
-So the tiers that survive are the two fed by a power the peer **stated**, which
+So the source ranks that survive are the two fed by a power the peer **stated**, which
 means a peer speaking SUPE, and there is no setting: a switch would only offer
 the broken behaviour back. Regression detection — noticing when a power that
 *was* working stops working — is kept and is worth having regardless, since
@@ -261,7 +261,7 @@ The rest of this section is retained for the reasoning, not as a plan.
 
 The reason not to search downward on a vanilla peer is structural, not a matter
 of tidiness. `lora rf` works because a **fixed-time slotted exchange makes
-absence unambiguous** — nothing but "too quiet" can explain a silent slot. On
+absence unambiguous** — nothing but "too quiet" can explain a silent time slot. On
 real traffic every negative is contaminated:
 
 - We hear the relay of a packet we routed through a transit neighbour → proof
@@ -400,7 +400,7 @@ there.
   a tracking loop with hysteresis, not a one-shot search. `lora rf` finds the
   edge for a cooperating peer; §4.3 is the same loop driven by weaker inputs for
   everyone else. There is one ratchet, with two grades of evidence feeding it.
-- **Broadcast is a separate regime.** Announces have no single prover and must
+- **Broadcast is a separate channel plan.** Announces have no single prover and must
   reach everyone — power them for the *farthest neighbour we still need*, derived
   from the per-neighbour table's worst member; never cut power on a broadcast.
 - **RNS retry is ground truth.** Estimates can be wrong (noise asymmetry); keep
@@ -441,14 +441,14 @@ downlink-calibration table for transit neighbours.
 
 Link margin is SNR headroom to the SF sensitivity floor. Cutting power trades
 directly against SF/coding gain *and* worsens hidden-node loss. So power and rate
-are one decision, not two — `SUPE.md` §14.3's step ladder, chosen from a measured
+are one decision, not two — `SUPE.md` §14.3's step rate table, chosen from a measured
 path loss, is the natural home for the *joint* optimum.
 Power-only adaptation on the fixed common config is the earlier, simpler slice;
 treat it as a floor the later rate layer subsumes.
 
 Regulatory: lower power doesn't change dwell/duty, but the joint power+rate
 choice does — fold into the proper-air-protocol dwell math. Note that carrier
-sense is a **separate** obligation from dwell and is mandatory in some regimes
+sense is a **separate** obligation from dwell and is mandatory in some channel plans
 (ARIB STD-T108 on 920 MHz), which constrains what may run without LBT
 regardless of how short the frames are.
 
@@ -473,7 +473,7 @@ periodic digest carrying
 
 **Why the echoed hashes are the crux.** When neighbour B reports "heard hash H at
 SNR S" and H is a frame **we** transmitted, we know exactly what power we used
-for H. That is an exact link-budget sample with **no unknown-far-power term** —
+for H. That is an exact link-rate step sample with **no unknown-far-power term** —
 the very term that makes reciprocity diverge when both ends adapt. Every ordinary
 frame already on the channel becomes a *retroactive* calibration probe once its
 hash is echoed: no proof airtime, no synthetic probe. Truncated hashes keep the

@@ -34,10 +34,10 @@ so a wrong constant shows up as deterministic frame loss in a test rather than
 as a mystery on air. This alone would retire several open items in the spec.
 
 **Contention behaviour needs more than two nodes.** Everything interesting about
-carrier sense, deferral, detour collisions and the deafness window happens with
+carrier sense, deferral, channel switch collisions and the deafness window happens with
 four to ten stations. We have two boards.
 
-**The departure policy is unanswerable by argument.** When a detour is worth
+**The departure policy is unanswerable by argument.** When a channel switch is worth
 taking, how long to hold traffic, how to treat a peer's application latency —
 these want to be measured against synthetic traffic patterns, not reasoned about.
 See §7.
@@ -163,7 +163,7 @@ The immediate consumer is the departure policy. SUPE deliberately puts that
 decision in one pure function:
 
 ```
-should_detour(peer_state, queue_state, channel_state) -> { no | now | wait_until(t) }
+should_channel switch(peer_state, queue_state, channel_state) -> { no | now | wait_until(t) }
 ```
 
 no side effects, no radio access, one call site. The traffic patterns to run it
@@ -186,7 +186,7 @@ lives costs nothing, and it is already done.
 **A simulator that is subtly wrong gives confidence rather than information.**
 The mitigation is cheap: calibrate against the few things measurable on real
 hardware — time on air (exactly), received signal strength at two known
-distances, detour success rate — and keep those as regression checks on the ether
+distances, channel switch success rate — and keep those as regression checks on the ether
 itself.
 
 **Scope creep towards physical realism.** The list in §4 is ordered; the tail of

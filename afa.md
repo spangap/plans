@@ -1,7 +1,7 @@
-# AFA — 868 MHz channel plan and modulation ladder
+# AFA — 868 MHz channel plan and modulation rate table
 
 > Scope: **design intent, nothing built yet.** This file fixes the channel
-> raster, the mode ladder, and the framing decisions so the implementation has a
+> raster, the mode rate table, and the framing decisions so the implementation has a
 > target. Regulatory figures are read from the standards named in §7; where a
 > number here disagrees with those documents, the documents are right and this
 > file is stale.
@@ -43,7 +43,7 @@ Timing, EN 300 220-1 table 48:
 | Minimum deferral period | = CCA interval |
 | Dead time (CCA end → transmit start) | declared, ≤ 5 ms |
 | Ton_max, single transmission | 1 s |
-| Ton_max, dialogue or polling sequence | 4 s |
+| Ton_max, immediate exchange or polling sequence | 4 s |
 | **Max Tcum_on** | **100 s per hour per 200 kHz of spectrum** |
 | Toff_min, same operating frequency | 100 ms |
 
@@ -100,12 +100,12 @@ any two channels, no channel crossing a band-entry boundary, and the number of
 **9 × 500 kHz, uniform 25 mW, all on PSA. 900 s/h aggregate.**
 
 Uniformity is worth something in itself: one power class, one channel width, one
-spectrum-access regime, so the scheduler tracks a single 100 s/h counter per
+spectrum-access channel plan, so the scheduler tracks a single 100 s/h counter per
 channel with no special cases.
 
 For comparison, duty-cycle operation over the same spectrum would yield 3.6 s/h
 for band K, 36 s/h for L, 36 s/h for M and 3.6 s/h for N — 79.2 s/h in total,
-and those are per-band budgets shared across the channels inside them, not
+and those are per-band allowances shared across the channels inside them, not
 per-channel. PSA is worth roughly 11× here.
 
 Channel 9 fills band N edge-to-edge with zero margin, bounded on both sides by
@@ -128,7 +128,7 @@ at SF5/BW125's 15.6 kbps against F4's 250 kbps here. This plan takes peak rate;
 revisit if the traffic pattern turns out to be many slow flows rather than few
 fast ones.
 
-Nine is the ceiling. K+L+M is 5 600 kHz contiguous, and
+Nine is the limit. K+L+M is 5 600 kHz contiguous, and
 `N × 500 + (N−1) × 200 ≤ 5600` caps that stretch at 8; band N contributes the
 ninth. The 200 kHz left over in K+L+M cannot be filled either — any additional
 channel needs its own 200 kHz guard first, so even a 125 kHz channel would need
@@ -137,7 +137,7 @@ channel needs its own 200 kHz guard first, so even a 125 kHz channel would need
 The 200 kHz separation at 868.5→868.7 lands on the alarm exclusion, so that
 guard costs nothing that was usable anyway.
 
-## 3. Modulation ladder
+## 3. Modulation rate table
 
 Reference is SF7/BW125. LoRa net bitrate is `SF × (4/5) × BW / 2^SF` at CR 4/5.
 
@@ -156,9 +156,9 @@ Reference is SF7/BW125. LoRa net bitrate is `SF × (4/5) × BW / 2^SF` at CR 4/5
 | **F4** (GFSK) | **250 000 bps** | 300 000 bps | **~+24.5 dB** | 500 kHz |
 
 Both columns increase monotonically, so no mode is dominated and the table is a
-usable rate-adaptation ladder end to end.
+usable rate-adaptation rate table end to end.
 
-Every channel in §2 is 500 kHz, so the whole ladder is available on every
+Every channel in §2 is 500 kHz, so the whole rate table is available on every
 channel — the narrower modes simply occupy part of one. The "min channel" column
 matters only if a future revision adds narrower channels.
 
@@ -335,10 +335,10 @@ suppresses the outer sidebands, so measured 99% occupied bandwidth comes in
 below these figures.
 
 **F4 cannot be both 4× and generously coded.** 250 kbps net against the 300 kbps
-hardware ceiling leaves only rate 5/6. A rate-1/2 4× mode would need 500 kbps
+hardware limit leaves only rate 5/6. A rate-1/2 4× mode would need 500 kbps
 raw, which does not fit a 500 kHz channel at any modulation index, since 2-FSK
 tops out near 1 bit/s/Hz. F2 gets the generous coding; F4 is coded as heavily as
-the ceiling permits.
+the limit permits.
 
 ### 6.1 Coding chain
 

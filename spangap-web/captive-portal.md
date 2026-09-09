@@ -53,7 +53,7 @@ The OS decides a network is "open internet" iff its **connectivity
 probe** gets the exact expected response. You never command the CNA to
 close — you satisfy (or fail) the probe, and dismissal follows.
 
-Probe endpoints and their success sentinels (all hit our HTTP server
+Probe endpoints and their success command keys (all hit our HTTP server
 because DNS is hijacked — dispatch on `Host` + path):
 
 | OS      | Probe URL                                              | Success response                                                        |
@@ -73,7 +73,7 @@ IP or MAC):
 
 - **UNSOLVED** (new client): probe → serve HTTP instruction page (or
   302 to it). CNA pops.
-- **RELEASED** (user engaged): probe → return the success sentinel.
+- **RELEASED** (user engaged): probe → return the success command key.
   Next re-probe dismisses the captive view.
 
 ### The flip trigger — and the two gotchas

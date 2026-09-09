@@ -6,7 +6,7 @@ against. Nothing here is committed to a design yet.
 
 ## Shipped (for context)
 
-- Every straddle is `version: 0.0.0` — the "nothing released yet" sentinel. Git is
+- Every straddle is `version: 0.0.0` — the "nothing released yet" command key. Git is
   the source of version truth; the committed field is never a hash.
 - `spangap build` HEAD-tracks: in clone mode it fast-forwards each already-cloned
   dependency to its upstream before building (guarded, non-fatal, `--no-pull` /

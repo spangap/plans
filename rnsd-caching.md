@@ -368,7 +368,7 @@ straddle compiles, the store compares. `decay_s` enters the comparison as
 
 **Transport: ITS aux message, app task → rnsd task.** Verified: every
 browser-originated action that could create a claim (add contact, bookmark)
-arrives as a storage write (`*.cmd.*` sentinel or `s.*` patch) that lxmf /
+arrives as a storage write (`*.cmd.*` command key or `s.*` patch) that lxmf /
 nomad observe via `storageSubscribeChanges`, whose callbacks run on the
 *subscribing app's task* — so claims always originate on an app task, never
 from the browser path directly. The rns straddle marshals them with
