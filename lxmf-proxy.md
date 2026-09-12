@@ -376,59 +376,6 @@ its own filtering.
   that makes rnsd drop inbound for it without proving — packets and Resource
   advertisements alike.
 
-## 13. Removal comes first
-
-The first commit of this work deletes the mailbox node and every trace of it,
-before any proxy code lands. Afterwards the string `rlpg`, in any case, occurs
-nowhere in the workspace outside git history. The inventory, so nothing is
-missed:
-
-**Straddle.** `rlpg/` in its entirety, and its opt-in lines in
-`reticulous/straddle.yaml` and the paragraph about it in
-`reticulous/INTERNALS.md`.
-
-**lxmf firmware.** `esp-idf/{include,src}/rlpg_wire.*` and the `CMakeLists.txt`
-line; the whole owner-session, deposit-session, relay-queue and custody code in
-`lxmf.cpp` (`rlpg*` functions, `s_rlpgOwn`, `s_rlpgDeps`, `s_rlpgRelayQ`, the
-`rlpgPark` / `rlpgTryPark` / `rlpgFailToMailbox` / `rlpgPreemptOutbound` hooks
-in the delivery queue, the `RLPG_LINK_RESOURCE_AUX_PORT` opener); the
-`LXMF_ST_REMOTE_RLPG`, `LXMF_ST_OUR_RLPG`, `LXMF_ST_REMOTE_RLPG_FULL`,
-`LXMF_ST_REMOTE_RLPG_ERR` enumerators; the settings `s.lxmf.id.<n>.rlpg_node`,
-`s.lxmf.id.<n>.rlpg_service_dest`, `s.lxmf.rlpg.{direct_budget_s,
-cert_renew_days, cert_valid_days}`; the ephemeral `lxmf.id.<n>.rlpg_state`;
-the contact record fields `rlpg`, `rlpg_svc`, `rlpg_active`; the message record
-field `rlpg_tid`; the announce-catalogue field `rlpg`; announce app_data element
-`[3]`. Record stores change outright, no migration. The caps bitfield (element
-`[2]`) and the double-encrypted inbound path stay: they are lxmf features in
-their own right.
-
-**lxmf frontends.** `browser/src/panels/RlpgStatus.vue`,
-`browser/src/components/lxmf/RlpgIcon.vue`, their imports and the topbar
-registration in `modules/lxmf.ts`, the status names there, the mailbox glyphs
-in `ContactCard.vue`, `ConversationList.vue` and `MessageBubble.vue`; the
-mailbox rows and state text in `conditional/spangap-lcd/src/lxmf_lcd.cpp`; the
-schema lines in `tools/sgdb_recover.py`.
-
-**lxmf docs.** Every mention in `README.md` (the custody row of the status
-table) and `INTERNALS.md` (the delivery-queue custody hooks, the link-consumer
-list, the caps-bit table's element `[3]`, the aux-port note).
-
-**rns.** `RNSD_CLAIM_RLPG` in `rnsd.h`, `RDIR_CONSUMER_RLPG` in µR's
-`Directory.h`, the `rlpg.mailbox` entry in `rnsd_peers.cpp`'s aspect list, and
-the consumer-list comments in `rnsd.h`, `ports.h`, `rnsd.cpp`, `README.md` and
-`INTERNALS.md`.
-
-**Elsewhere.** Consumer-list comments in `iface-auto`, `iface-ble`,
-`iface-espnow` and `iface-tcp` `straddle.yaml`, `iface-lora`'s
-`lora_peers.h`, `netgraph.cpp`, and `hw-xiao-esp32s3-sx1262`'s `straddle.yaml`
-and `INTERNALS.md`; the mentions in `plans/ratchet.md`,
-`plans/rnsd-caching.md` and `plans/lxmf-delivery-queue-and-supe-measurements.md`.
-
-Keep the generic rns primitives `rnsdEncryptFor`, `rnsdDecryptSelf`,
-`rnsdIdentityPubkey`, `rnsdIdentityHashFromPubkey` and
-`rnsdDestinationHashFromPubkey`: netgraph and lxmf's propagation-node client use
-them, and their docs describe them on their own terms.
-
 ## Aspect and names
 
 The aspect is **`lxmproxy.server`**. Announce filters key on the app name, so
