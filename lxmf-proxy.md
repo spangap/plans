@@ -180,19 +180,19 @@ C → S   FETCH    [msg_id]                                            withheld 
 S → C   BODY     [msg_id, content, fields]                           Resource if large
 C → S   HANDED   [msg_id]                                            after persist
 C → S   SEND     [local_key, peer, ts, title, content, fields, method, thread, pn]
-S → C   STATUS   [local_key | msg_id, LxmfStatus, ts, message_id?]  live status
-C → S   SETTLED  [msg_id]                                            terminal status seen
+S → C   STATUS   [local_key | msg_id, LxmfStatus, ts, message_id?]  once: the outcome
 C ↔ S   CONFIG   [account settings]                                  both directions
 C → S   RELEASE                                                      deprovision
 S → C   RATCHETS [record]                                            release hands back
 ```
 
-- **Explicit acks, after persist.** rnsd proves a packet the moment the
-  hand-off to the consumer task succeeds, before lxmf has parsed, verified or
-  stored anything, and a Resource's conclusion is likewise pre-persist. Neither
-  is a handover ack. `HANDED` is sent only once the record is in storage;
-  `SETTLED` likewise for a terminal outbound status. The server deletes on
-  nothing else.
+- **A message is acknowledged; a status is not.** rnsd proves a packet the
+  moment the hand-off to the consumer task succeeds, before lxmf has parsed,
+  verified or stored anything, and a Resource's conclusion is likewise
+  pre-persist. Neither is a handover ack, so mail gets `HANDED`, sent only once
+  the record is in storage — that is worth a frame. A status word is not: the
+  Channel proves every envelope or tears the link down trying, so the server
+  reads `rnsd.chan.<tag>.outstanding` at zero and knows the client has it.
 - **Announce app_data** carries what the client needs to know before linking —
   the operator's label, and nothing that identifies any account behind the
   destination (§3). msgpack array; the client keeps its own copy from the
@@ -262,29 +262,51 @@ propagation-node target. The client's local key `o_<unix_ms>_<rand4>` is the
 idempotency key: a `SEND` repeated after a reconnect meets the same record and
 gets the same `STATUS`.
 
-The server deletes an outbound record once the client has `SETTLED` its terminal
-status, under the same deletion policy as inbound. A `SEND` over quota is
-refused with a status the client shows.
+The server deletes an outbound record on the first scan after its `STATUS` is
+proved — `rnsd.chan.<tag>.outstanding` at zero — under the same deletion policy
+as inbound. A `SEND` over quota is refused with a status the client shows.
 
 While there is no Channel, outbound sits `QUEUED` locally with **no checkmark**.
 
 ## 7. Status and checkmarks
 
-- **one check** — `ON_PROXY`: a machine that is not mine has it.
-- **two checks** — `DELIVERED`: the server saw a real LXMF proof. Opportunistic
-  and Link deliveries both produce one.
-- **failures** relay the server's actual `LxmfStatus` verbatim, so the client
-  shows the true error rather than a proxy-flavoured one. The timeout is lxmf's
-  own `delivery_timeout` settling `DELIVERY_TIMEOUT` and relaying.
+An outbound that goes through a proxy has **five** states, and the server's own
+progress is not among them:
 
-Status codes 29–32 are free and are reused; 33 is a retired gap and stays one.
+- **none** — `QUEUED`: nothing has left this device.
+- **`…`** — `SENDING_TO_PROXY`: a message too long for one Channel message,
+  still crossing as a Resource that can fail halfway.
+- **one check** — `ON_OUR_PROXY`: a machine that is not mine has it, and
+  whatever it is doing about that is its business. Reached without a frame
+  coming back — the Channel is proved end to end, so a SEND that has gone out
+  is a SEND the proxy has.
+- **two checks** — `OUR_PROXY_DELIVERED`: the server saw a real LXMF proof.
+  Opportunistic and Link deliveries both produce one.
+- **red ✕** — `OUR_PROXY_GAVE_UP`: it tried and stopped. The server's actual
+  `LxmfStatus` is kept verbatim on the record (`proxy_status`) and named on the
+  detail page, so the reason survives without the conversation carrying it. The
+  timeout is lxmf's own `delivery_timeout` settling `DELIVERY_TIMEOUT` there.
+
+Not among the five, and deliberately: `CANCELLED` (our own doing) and
+`PROXY_REFUSED` (the server would not take it — trouble reaching the proxy, not
+the proxy's verdict on reaching the recipient).
+
+Status codes 29, 31, 32 and 39 carry them; 33 is a retired gap and stays one.
+
+**The server sends one STATUS per outgoing message, and it is the outcome.**
+Its own progress through path requests, sends, proof waits and link retries is
+commentary the client cannot act on. `lxmfStatusIsVerdict()` is the test, shared
+by both ends; a non-verdict that arrives anyway is ignored.
 
 ## 8. Body size and download state
 
 Bodies over a threshold are withheld; the client renders a download affordance
-and fetches on demand. The threshold derives from the measured link RTT —
-`rnsd.chan.<tag>.rtt_ms`, continuously re-measured on a held link — clamped,
-with a manual override.
+and fetches on demand. `s.lxmproxy.inline_bytes` is the threshold, 2048 by
+default. Setting it to 0 derives one from the measured link RTT
+(`rnsd.chan.<tag>.rtt_ms`) instead — which a server never has, because rnsd
+measures a round trip only on a channel the device DIALS and a proxy's channels
+are all dialled to it, so that path lands on its 256-byte floor and withholds
+almost everything.
 
 Client-side this needs an explicit durable field on the message record, `body =
 absent | present` plus `size`: empty content is a legitimate message, so absence

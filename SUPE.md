@@ -104,8 +104,9 @@ the calling channel (the frequency and modulation this network hails on;
              rate table reaches is what both radios can do (§14.1). The byte
              selects which of the two shapes below follows
           └─ the hail reading is B's headroom at the calling rate — what
-             the rate step choice runs on — and the only measurement of the
-             direction A transmits in
+             the rate step choice runs on — and A's measurement of the
+             direction A transmits in. B's own comes back the other way,
+             in the END that closes A's burst
       -or- GOT      {…, rate step limit, count limit, count, length,
                       how the hail was heard}                            11 B
           └─ B holds traffic for A as well: READY's terms with B's own
@@ -129,10 +130,16 @@ the calling channel (the frequency and modulation this network hails on;
     both retune: A on READY's RX-done, B on its TX-done, one retune gap
     A→B   the frames × count — at the confirmed rate step: the first frame
           at the new rate is the first frame of the burst
-    A→B   END   {type, power of the burst just sent,
-                     salt, 1-byte checksum × count}                   3+n B
+    A→B   END   {type, power of the burst just sent, salt,
+                     how B's last frame was heard,
+                     1-byte checksum × count}                         5+n B
           └─ frames carry no sequence numbers; the checksum list IS the
              sequence, and B aligns what it holds against it
+          └─ the reading is B's own direction, and this is the only frame
+             that can carry it: READY and GOT quote a level back to
+             whoever OPENED the leg, so without it the answering side
+             would measure the direction it receives in and never the
+             direction it transmits in (§15)
     B→A   BYE       {type}                                                1 B
       -or- RESEND    {type, bitmask of the missing}                 1+⌈n/8⌉ B
           └─ ONE repair round, at a quarter of the calling rate's price:
@@ -322,7 +329,7 @@ length exactly:
 | `0xC3` | ANNOUNCE | main channel | 5 + 4·count |
 | `0xC4` | GOT | traffic channel, or the immediate exchange | 11 opening a time slot; 11 + ⌈n/8⌉ answering an END |
 | `0xC5` | READY | traffic channel, or the immediate exchange | 9 |
-| `0xC6` | END | traffic channel, or the immediate exchange | 3 + count |
+| `0xC6` | END | traffic channel, or the immediate exchange | 5 + count |
 | `0xC7` | BYE | traffic channel, or the immediate exchange | 1 |
 | `0xC8` | RESEND | traffic channel, or the immediate exchange | 1 + ⌈count/8⌉ |
 | `0xC9`, `0xCA`–`0xCF`, `0xD2`–`0xDF` | reserved | | discard |
@@ -436,7 +443,7 @@ behind it**: the same fields, then a count and a length of its sender's own.
 | | power | 1 | `dBm + 64`, signed — what this frame, and every frame this side sends in this exchange, goes out at |
 | | rate step | 1 | the rate step the hailer's burst will fly at — the receiver's choice, never above the hail's limit, never above either node's capability limit, resolved against the channel the exchange is on. In channel plan 0, 0 selects the calling-rate immediate exchange and anything above it the full exchange (§8) |
 | | count limit | 1 | the most frames this side will hold: a RAM promise (§8). The hailer's burst is trimmed to it |
-| | heard | 2 | level (`dBm + 64`) and signal-to-noise (quarter-dB) of the frame this READY answers: the hail — the one measurement of the hailer's direction at the calling configuration — or an opening GOT |
+| | heard | 2 | level (`dBm + 64`) and signal-to-noise (quarter-dB) of the frame this READY answers: the hail — the hailer's measurement of the direction it transmits in, at the calling configuration — or an opening GOT |
 | | | **9** | |
 | **GOT** (opening) | … | 9 | READY's fields — its `rate step` byte read as the highest rate step this side proposes, since here it is the sender of the coming burst; its `heard` the hail's where it answers one, and on a wide time slot the last frame heard from the peer — then: |
 | | count | 1 | LoRa frames in this side's own burst — never above a count limit already received |
@@ -446,8 +453,9 @@ behind it**: the same fields, then a count and a length of its sender's own.
 | **END** | type | 1 | `0xC6` |
 | | power | 1 | `dBm + 64`, signed — what the burst it closes went out at, and what this frame and its sender's frames fly at until stated otherwise. Stated after the fact, because the burst's power is chosen on the freshest reading, at the confirmed rate step's modulation (§15) — a power stated in advance would be a power chosen blind |
 | | salt | 1 | random — this closing frame's freshness, for the same reason the hail carries one (§7). A one-frame burst's END is otherwise a type, a power that rarely moves and one checksum: a few hundred distinct frames, so two ordinary exchanges would close identically and seed the same follow-up schedule at two epochs with two roles |
-| | checksums | 1 × n | one byte per frame of the burst just sent, in transmission order (§8). The count is the frame's own length minus three, and is the count that actually flew |
-| | | **3 + n** | |
+| | heard | 2 | level (`dBm + 64`) and signal-to-noise (quarter-dB) of the last frame this sender heard from the peer — its READY or GOT where this side hailed, its hail where this side answered one. It is the peer's ONLY measurement of the direction it transmits in whenever it did not open the leg: READY and GOT quote a level back to the opener, and the answering side opens nothing (§15). A sender with no reading to give states the level `+63 dBm`, which no receiver reports and which therefore cannot be mistaken for one — a zero would read as 0 dBm |
+| | checksums | 1 × n | one byte per frame of the burst just sent, in transmission order (§8). The count is the frame's own length minus five, and is the count that actually flew |
+| | | **5 + n** | |
 | **BYE** | type | 1 | `0xC7` — every frame accounted for; the exchange is over |
 | **RESEND** | type | 1 | `0xC8` |
 | | bitmask | ⌈n/8⌉ | bit *i* set: frame *i* of the checksum list is missing. n is the count both sides hold |
@@ -1576,11 +1584,23 @@ hailer and B the hailed party:
 | A → B pair | B | its reading of A's burst, against the power A's END states one frame later — or the hail's, where no END follows | the rate step's modulation |
 | B → A pair | A | its reading of B's answer — READY or GOT — against the power it stated; and of B's burst against B's END, where traffic flew in the return direction | the answer's modulation, and the rate step's |
 | A → B report | A | the hail reading B's answer carries, and the reading in any later READY of B's — the only measurements of the direction A actually transmits in | the calling configuration, and the exchange's |
-| B → A report | B | the answering GOT's account of how the burst was heard, and the reading in any READY A sends | the exchange's modulation |
+| B → A report | B | the answering GOT's account of how the burst was heard, the reading in any READY A sends, and — whenever B answered rather than opened — A's END, whose reading is of B's answer | the exchange's modulation |
 
 Nothing in that table is a reciprocity assumption. Every reading is taken by
 the node that will use it, and the reported ones measure the direction the
 reporter's peer transmits in — which no transmitter can measure for itself.
+
+**Both ends measure both directions, and that is END's doing.** READY and GOT
+carry a reading, but both answer whoever OPENED the leg, so the reports in them
+all flow one way: to the hailer. A node that only ever answers — the common
+shape, since the side with traffic is the side that hails, and a reply riding an
+exchange already open is the cheap way to send one — would then learn the
+direction it receives in from every frame it hears and the direction it
+transmits in never. END closes that: it is sent by the side that just burst, and
+the reading it carries is of the peer's last frame, so the answering side is
+told how its own answer landed. A protocol where one end knows the link and the
+other guesses at it is a protocol whose adaptive power runs on reciprocity in
+one direction for no reason (§15).
 
 Two bindings that save a slow first exchange:
 
