@@ -16,7 +16,7 @@
 > inside the modem, with the Reticulum daemon unmodified and unaware. Where
 > the shared channel is all there is, an exchange is an immediate exchange on it: one
 > short frame asks, the peer answers, and the traffic follows at the best
-> rate the link supports. Where a channel plan gives it somewhere to go, a
+> rate the link supports. Where a channel plan gives it somewhere to go, an
 > exchange is private — at derived times, channels and sync words — and one
 > frame on the shared channel seeds everything; every exchange's own closing frame
 > seeds the next, so a pair with steady traffic touches the shared channel
@@ -188,7 +188,7 @@ spreading factors at once (§14.6) moves the line: to it a plain packet may go
 at a lowered rate with no immediate exchange, and the probe pays only for the batch and
 the report (§15).
 
-**What channel plan 0 cannot do is leave the frequency.** A immediate exchange at any rate
+**What channel plan 0 cannot do is leave the frequency.** An immediate exchange at any rate
 still occupies the calling channel, and every node sitting there senses it as
 busy for its length — so an exchange here is cheaper than the same frames sent
 one by one, never free. A burst at a lowered rate is energy without frames to
@@ -204,7 +204,7 @@ frequency nobody is sitting on. That turns the immediate exchange into a schedul
 appointments derived from the hail's own bytes, on channels and under sync
 words the hail never names — and it makes the closing frames worth having at
 every rate step, because a resend on a private channel costs no contest with
-anybody. The frames, the roles and the run are those of §0.1; what follows is
+anybody. The frames, the roles and the attempt series are those of §0.1; what follows is
 where a channel plan changes the answer. Channel plan 1 is the plan for ETSI EN
 300 220 in 863–870 MHz (§14.2): nine 500 kHz channels between the alarm and
 audio allocations, each with its own airtime allowance, and a calling frequency
@@ -259,7 +259,7 @@ the time slot (channel_k, sync_k — a private frequency, not just a private
           credited to this channel's ledger, not the calling channel's
 
 the closing frame seeds again (§7)
-    the same arithmetic, wide: time slots from epoch′+150 ms, widening and
+    the same arithmetic, follow-up: time slots from epoch′+150 ms, widening and
     jittered, never further apart than ~350 ms, lifetime 3 s; each a
     moment, a channel and a word, at the rate step this exchange confirmed,
     resolved against each time slot's own channel
@@ -270,7 +270,7 @@ the closing frame seeds again (§7)
     traffic touches the calling channel once, ever
 
 when the two time slots pass unmet (§12)
-    exactly §0.1's run — an interval, a louder hail, a hail-back from a
+    exactly §0.1's attempt series — an interval, a louder hail, a hail-back from a
     B that heard and could not attend — with one more reason for B to
     have missed: it was mid-frame on the calling channel when the time slot
     came, and a frame in the air outranks every time slot (§7)
@@ -445,7 +445,7 @@ behind it**: the same fields, then a count and a length of its sender's own.
 | | count limit | 1 | the most frames this side will hold: a RAM promise (§8). The hailer's burst is trimmed to it |
 | | heard | 2 | level (`dBm + 64`) and signal-to-noise (quarter-dB) of the frame this READY answers: the hail — the hailer's measurement of the direction it transmits in, at the calling configuration — or an opening GOT |
 | | | **9** | |
-| **GOT** (opening) | … | 9 | READY's fields — its `rate step` byte read as the highest rate step this side proposes, since here it is the sender of the coming burst; its `heard` the hail's where it answers one, and on a wide time slot the last frame heard from the peer — then: |
+| **GOT** (opening) | … | 9 | READY's fields — its `rate step` byte read as the highest rate step this side proposes, since here it is the sender of the coming burst; its `heard` the hail's where it answers one, and on a follow-up schedule's time slot the last frame heard from the peer — then: |
 | | count | 1 | LoRa frames in this side's own burst — never above a count limit already received |
 | | length | 1 | how long that burst takes at the proposed rate step, in 5 ms steps |
 | | | **11** | |
@@ -523,12 +523,12 @@ likely with every second that passes.
 
 Three differences follow from what each schedule can prove rather than from its
 shape. An immediate schedule's time slots fly at the **calling configuration**, because
-nothing has been agreed yet — the hail was one frame on a shared channel. A wide
-schedule's fly at the **rate step its seeding exchange confirmed**, because that
-exchange is standing evidence that modulation works between these two. And in a
+nothing has been agreed yet — the hail was one frame on a shared channel. A
+follow-up schedule's fly at the **rate step its seeding exchange confirmed**, because that
+exchange is standing evidence that modulation works between these two. And in an
 immediate schedule the **hailed party speaks first**, whether or not it holds
 traffic, because the hail asked a question and the time slot is where it is
-answered; in a wide one nobody asked anything, so the **holder of traffic
+answered; in a follow-up one nobody asked anything, so the **holder of traffic
 speaks first**, starting with the side that received the last burst, being the
 likely replier.
 
@@ -547,7 +547,7 @@ is what makes a path loss readable straight off the line. A reading that never
 came back is `?`, and that is not the same as a zero: one says nobody reported,
 the other is a measurement.
 
-A exchange is one line, opened by whoever spoke first so that the order on the
+An exchange is one line, opened by whoever spoke first so that the order on the
 line is the order on the air:
 
 ```
@@ -568,7 +568,7 @@ because it was two hails.
 One robust shared channel that every node sits on, carrying Reticulum
 announces, path discovery and anything broadcast — and, per pair, a derived
 schedule of private exchange places where unicast traffic actually flows. The
-schedule is a pure function of a frame both ends already hold, so arranging a
+schedule is a pure function of a frame both ends already hold, so arranging an
 exchange transmits nothing, and every exchange's closing frame seeds the next.
 
 **A hail is a question, and the party it names answers it.** The hailer
@@ -688,7 +688,7 @@ channels is correct whichever way it is read, and the setting can name the
 channel plan unchanged.
 
 **The rate table is measured from the calling configuration, not written in
-absolutes.** Budget 1 is one place faster than whatever this network hails at,
+absolutes.** Rate step 1 is one place faster than whatever this network hails at,
 rate step 2 is two, and so on; rate step 0 is the calling configuration itself. A
 network on SF9/BW125 gets SF8, SF7, SF6 where one on SF7/BW125 gets SF6, SF5 —
 the same protocol, the same indices, no configuration anywhere.
@@ -1046,15 +1046,15 @@ stream = D_0[3..31] ‖ D_1[0..31] ‖ D_2[0..31] ‖ …
          time slot k consumes stream[3k], stream[3k+1], stream[3k+2]
          as j_k, c_k, s_k
 
-t_0    = seed_gap                                       (narrow, §14.7)
-       = 150 + (j_0 mod 40)                             (wide)
-t_k    = t_(k-1) + 100 + (j_k mod 24)                   (narrow)
-       = t_(k-1) + min(60 + 30·k, 350) + (j_k mod 40)   (wide)
+t_0    = seed_gap                                       (immediate, §14.7)
+       = 150 + (j_0 mod 40)                             (follow-up)
+t_k    = t_(k-1) + 100 + (j_k mod 24)                   (immediate)
+       = t_(k-1) + min(60 + 30·k, 350) + (j_k mod 40)   (follow-up)
          …measured from the epoch; time slots exist while t_k ≤ lifetime
-         (230 narrow, 3000 wide)
+         (230 immediate, 3000 follow-up)
 
 chan_k = 1 + (c_k mod nChans)         channel plan 1; always channel 0 in channel plan 0
-         narrow, k = 1: if chan_1 = chan_0, chan_1 = 1 + ((c_1 + 1) mod nChans)
+         immediate, k = 1: if chan_1 = chan_0, chan_1 = 1 + ((c_1 + 1) mod nChans)
 sync_k = W_sf[ s_k mod N_sf ]         §14.5's word list for the time slot's
                                       spreading factor, ordered ascending
 
@@ -1122,7 +1122,7 @@ other end. Both losses are one dropped frame, and both cost a whole lifetime.
 **Holding the closing frame is not proof; only these two things are.** A side may
 seed from an END when it *received* it — the peer sent it, so the peer holds
 it — or when something of the peer's *answered* it: a BYE, a RESEND, or an
-answering GOT. A END sent into silence proves nothing, and seeding on
+answering GOT. An END sent into silence proves nothing, and seeding on
 one is worse than seeding nothing: the sender derives a schedule its peer has
 never heard of, then spends the entire lifetime transmitting at time slots nobody is
 attending before it falls back to the shared channel. One lost frame becomes a
@@ -1202,7 +1202,7 @@ data announcement is a question the far end owes an answer to, not a broadcast
 instead. A whole lifetime spent speaking into silence buys nothing that a hail
 would not have bought at the start.
 
-**A partial frame outlives its carrier by nothing.** A exchange hands over
+**A partial frame outlives its carrier by nothing.** An exchange hands over
 everything it collected in one delivery, once. A fragment still waiting for its
 partner after that delivery is waiting for something the exchange already failed
 to bring — the repair round is over and the frame that would complete it is not
@@ -1283,7 +1283,7 @@ carry it.
 
 **The follow-up schedule is the reply's ride.** The measured shape of interactive
 traffic is a reply born 100–400 ms after a burst concludes — a proof the
-daemon must decrypt, verify and sign before the modem sees it. The wide
+daemon must decrypt, verify and sign before the modem sees it. The follow-up
 schedule's early time slots sit exactly there, owned by exactly the party that will
 hold that reply, at the modulation that just worked. This is why no exchange
 ever waits for a reply that might be coming: the schedule ahead of it is a
@@ -1332,7 +1332,7 @@ the choice is made by one question: *does it hold traffic for the hailer?*
 **The answer flies at the configuration the hail arrived at.** That is the
 calling configuration for every radio but one: a hail to a node that listens
 at several rates (§14.6, §15) may itself arrive below the calling spreading
-factor, and its sender is listening for the answer where it sent. Budgets
+factor, and its sender is listening for the answer where it sent. Rate steps
 stay indexed from the calling configuration whatever the hail flew at, so a
 READY may confirm rate step 0 to a hail that arrived at rate step 2, and the burst
 then flies slower than the hail did.
@@ -1370,7 +1370,7 @@ burst it accepts is a burst it must hold to the end (below). The hailer flies
 the first `limit` frames of the burst its hail described and no more; if it
 described fewer, it flies those. Its END's checksum count says what flew.
 
-**In channel plan 0, READY's rate step byte selects the immediate exchange's shape.** Budget 0:
+**In channel plan 0, READY's rate step byte selects the immediate exchange's shape.** Rate step 0:
 the frames follow — the hailed party's burst first where it opened with GOT,
 then the hailer's — at the calling rate and at their senders' stated powers,
 and each receiver hands each frame up as it lands. Nothing else is sent — no END,
@@ -1475,7 +1475,7 @@ frame goes up as it lands, exactly as plain traffic does.
 hail or at the time slot, the burst after the answer, END after the burst, the
 next answer after END — follows from the constants of §14.7 and lengths
 already exchanged, computable identically by both sides. A deadline missed
-means go home; nothing is renegotiated, and the run or the schedule ahead is
+means go home; nothing is renegotiated, and the attempt series or the schedule ahead is
 the retry.
 
 **What fills a burst is a resource transfer**, and it fills it as a batch
@@ -1649,38 +1649,38 @@ the first costs a frame and the second is evidence.
   schedule meanwhile, or by expiry one queue lifetime after the hail's epoch — by
   which time the traffic that prompted the hail has expired too, and the
   hail-back would answer a question nobody is asking. A
-  node that owes several sends them in the order the hails arrived, and a
+  node that owes several sends them in the order the hails arrived, and an
   exchange that opens between two of them leaves the rest owed.
 
   A hailed party that holds traffic for the hailer and is free answers; the
   pending hail-back is what a party that could not does instead. Which frame it sends
   when the two finally meet is §8's business and is the same either way.
 
-- **The hailer's run.** Silence — no answer by its deadline in channel plan 0, both
+- **The hailer's attempt series.** Silence — no answer by its deadline in channel plan 0, both
   time slots unmet under a plan — is answered by waiting, on the calling channel,
   holding the traffic: the hailed party may be about to hail back. After the
   interval (§14.7) with nothing from the peer, the hailer hails again, at more
   power, renewing the request and, under a plan, seeding two fresh time slots; the
-  third hail goes out at the configured maximum (§15). A run is per peer, and
+  third hail goes out at the configured maximum (§15). An attempt series is per peer, and
   it runs while the peer has any unexpired traffic behind it: packets arriving
-  mid-run join the queue and do not restart the rate table, because a peer that
+  mid-series join the queue and do not restart the rate table, because a peer that
   did not answer at maximum a moment ago has not become more reachable for
-  another packet having arrived. The third hail unanswered ends the run and
+  another packet having arrived. The third hail unanswered ends the series and
   files the peer unreachable, below.
 
-  **The run drops nothing; queue lifetime does.** Every packet carries the moment
+  **The attempt series drops nothing; queue lifetime does.** Every packet carries the moment
   it was queued, and leaves the queue when its own age reaches queue lifetime
   (§14.7), or in a burst when an exchange finally happens — whichever comes
   first. Three hails, their intervals and the channel-access waits in front of
-  them fit inside one queue lifetime, so a packet that was queued when its run began
-  is still there when the run ends, and a hail-back that arrives late finds
+  them fit inside one queue lifetime, so a packet that was queued when its series began
+  is still there when the series ends, and a hail-back that arrives late finds
   whatever is still young enough. Dropping at queue lifetime is safe because link
   data, channel
   traffic, resource parts and proofs all have retry or receipt machinery above
   (§13), and holding a packet longer would put the modem's copy in the air
   beside the daemon's retransmission of it.
 
-  **Power up.** Each successive hail in a run goes out at more power than the
+  **Power up.** Each successive hail in an attempt series goes out at more power than the
   last, the third at the configured maximum. It covers the one failure the
   hailer can fix from its own side: a peer that simply did not hear the hail.
   There is no limit to walk down — the rate step conversation moved to the
@@ -1688,8 +1688,8 @@ the first costs a frame and the second is evidence.
   silence. Three hails is under 110 ms of shared channel, a seventh of what one
   full packet would have cost.
 
-  **A hail-back ends the run wherever it arrives.** A hail from the peer,
-  received at any point in the run, is an ordinary hail: the hailer is now the
+  **A hail-back ends the attempt series wherever it arrives.** A hail from the peer,
+  received at any point in the series, is an ordinary hail: the hailer is now the
   hailed party, holds traffic for the node that hailed it, and speaks first
   with GOT at that schedule (§8). If it crosses with a live schedule of
   the hailer's own, ours is dropped unscored for theirs (§7); in channel plan 0 a
@@ -1709,30 +1709,30 @@ the first costs a frame and the second is evidence.
   ever, once per frame heard, and never back off. So presence never clears a
   hold; it only shortens one.
 
-- **Unreachable, and the hold.** Three hails unanswered in one run make the
+- **Unreachable, and the hold.** Three hails unanswered in one attempt series make the
   peer **unreachable**, and no hail is sent to it for the length of a hold.
   Traffic addressed to it meanwhile is queued, not refused: each packet waits
   out its own queue lifetime like any other, and the per-peer queue cap bounds what
   that can cost. Declaring that is a bet that trying again is not
   worth the airtime, and an exchange now costs one short frame, so the bet is a
   modest one made in stages: about a second at first, doubling with each
-  further unanswered run, to a limit of a minute — or of ten seconds while
+  further unanswered series, to a limit of a minute — or of ten seconds while
   the peer has been heard within the last minute, because a fault at a peer we
   can hear is likelier transient than terminal. A full minute imposed on the
   first finding is a blackout that outlives the conversation that provoked it.
 
-  **A peer already unreachable gets one hail per hold, not three.** The run
+  **A peer already unreachable gets one hail per hold, not three.** The series
   exists to establish unreachability, not to re-establish it; once
   established, whatever is queued when a hold ends gets a single hail at
   maximum power, and silence lengthens the hold towards its limit. The cost
   of a peer that is genuinely gone falls to one short frame a minute, and of
   a peer that is present and deaf to us, one short frame every ten seconds.
 
-- **Reachability is restored by an answer and nothing else.** A exchange opened
+- **Reachability is restored by an answer and nothing else.** An exchange opened
   with the peer at any schedule, or a hail from it naming us — that one being
-  the commonest, since a peer that missed a run of ours and has since come
-  free will hail us the moment it has traffic of its own or an pending hail-back to
-  send. Either clears the record on the spot and restores the full run. What
+  the commonest, since a peer that missed an attempt series of ours and has since come
+  free will hail us the moment it has traffic of its own or a pending hail-back to
+  send. Either clears the record on the spot and restores the full attempt series. What
   does *not* clear it is hearing the peer talk to somebody else; that refreshes
   presence, shortens the hold, and is all a third party's traffic can
   demonstrate.
@@ -1753,7 +1753,7 @@ the first costs a frame and the second is evidence.
   attends what it can and owes a hail to the rest. Each hailer whose time slots
   pass unmet then waits for that hail, which is exactly the busy-peer case the
   hail-back exists for — the unlucky hailer is not looking at absence, and its
-  run only proceeds if the interval passes with nothing heard.
+  series only proceeds if the interval passes with nothing heard.
 
 - **A follow-up schedule expiring unmet is not a failure and scores nothing.** It is
   the ordinary end of a conversation. The next traffic for that peer seeds a
@@ -1767,11 +1767,11 @@ the first costs a frame and the second is evidence.
   attendance as it likes; the lifetime is the only give-up there is. Only the
   shared channel may declare a peer unreachable.
 
-- **A exchange that dies mid-way** — a deadline missed after both sides have
+- **An exchange that dies mid-way** — a deadline missed after both sides have
   spoken — ends in both parties going home, holding what they hold. The
   receiver delivers the in-sequence prefix it can prove (§8) and surrenders the
   rest; the sender learns the exchange failed and the follow-up schedule that its
-  last *completed* exchange seeded still stands. A exchange that dies is not an
+  last *completed* exchange seeded still stands. An exchange that dies is not an
   unanswered hail: the peer spoke, so it is reachable, and the next traffic
   hails it afresh. The channel it died on is the listening side's to remember:
   it chose it — its ledger, its noise — and it should not draw it again for
@@ -1820,9 +1820,9 @@ the far end of exactly the paths this speeds up reports delivery failures.
 arithmetic**, which multiplies a measured round trip by small constants and
 tears links down after a handful of tries, and whose shortest per-hop timers
 are on the order of seconds — receipts and link establishment at about six
-seconds a hop in the reference implementation. A frame held through a run of
-hails, a schedule wait, an exchange and a repair round must still fit inside that
-rate step, and two things keep it fit. Patience (§14.7) bounds every packet's
+seconds a hop in the reference implementation. A frame held through an attempt
+series of hails, a schedule wait, an exchange and a repair round must still fit
+inside that allowance, and two things keep it fit. Queue lifetime (§14.7) bounds every packet's
 life in the modem from the moment the daemon handed it over — which is the
 moment the daemon's own timer started — so the modem drops what it could not
 deliver well before the daemon retransmits it, and the daemon's copy never
@@ -1880,14 +1880,14 @@ every node supports (§3).
 | rate steps available | to the lowest spreading factor both radio families reach — from an SF7 network, two where both are SX126x and **none where either is SX127x**, whose first entry would be the barred SF6; slower-calling networks reach further before that bites (§14.3) |
 | sync words | the interface's own, throughout; nothing is derived (§14.5) |
 | burst limit | none of its own — see below |
-| transaction limit | none of its own — the calling channel's, which in Europe is the 4 s immediate exchange figure of §14.2; see below |
+| transaction limit | none of its own — the calling channel's, which in Europe is the 4 s dialogue figure of §14.2; see below |
 | transmit power | the interface's `tx_power` |
 | airtime accounting | none |
 
 **Channel plan 0 states no limits of its own, and must not invent any.** It has no
 band plan and therefore no regulatory basis to draw them from — it runs on the
 calling channel, whose limits belong to whatever rules that network is
-operating under, and which SUPE does not own (§3). A immediate exchange is a transaction
+operating under, and which SUPE does not own (§3). An immediate exchange is a transaction
 in the regulation's sense and must fit whatever that channel allows one; what
 bounds it from inside is arithmetic: the length byte reaches 1.275 s at 5 ms a
 step, and a full immediate exchange is two bursts, their repairs and short frames.
@@ -1947,7 +1947,7 @@ they are not free parameters:
 | Constant | Value | Source |
 |---|---|---|
 | burst limit | 1 s | Ton_max, single transmission |
-| transaction limit | 4 s | Ton_max, immediate exchange or polling sequence |
+| transaction limit | 4 s | Ton_max, dialogue or polling sequence |
 | airtime per channel | 100 s in any 3600 s | max Tcum_on, for any given 200 kHz of spectrum |
 | minimum gap before reusing a frequency | 100 ms | Toff_min, same operating frequency |
 | clear-channel threshold | −75 dBm at 500 kHz, −81 dBm at 125 kHz | table 45, referenced to 0 dBd |
@@ -1956,13 +1956,13 @@ they are not free parameters:
 | minimum deferral before listening again | 160 µs, equal to the interval above | minimum deferral period |
 | maximum gap from a clear reading to transmitting | 5 ms, declared | dead time |
 
-**The transaction limit is what covers a whole exchange.** A exchange is a
-immediate exchange by the regulation's own definition — two nodes alternating on one
+**The transaction limit is what covers a whole exchange.** An exchange is a
+dialogue by the regulation's own definition — two nodes alternating on one
 frequency — which is precisely what the 4 s figure is for, and it comfortably
 holds two 1 s bursts, their repair rounds and their turnarounds. The 1 s
 single-transmission figure still binds each burst separately.
 
-**Airtime is a rate step and a window, not a percentage.** A channel plan records the
+**Airtime is an allowance and a window, not a percentage.** A channel plan records the
 pair — here 100 s in any 3600 s — rather than a duty figure, because the pair
 is what travels. European polite spectrum access is `100 / 3600`, a European
 duty cycle is `360 / 3600`, and North American frequency-hopping dwell is
@@ -1989,7 +1989,7 @@ chooses a rate step and a power on that basis.
 Two further consequences worth naming. The 100 ms minimum gap before returning
 to a frequency is part of the speaking side's carrier-sense duty at a time slot:
 a channel this node used within the gap is skipped exactly as a busy one is.
-And the 100 s/h rate step is per channel rather than per band precisely because of
+And the 100 s/h allowance is per channel rather than per band precisely because of
 the 200 kHz separation above, which is what the accounting in §14.4 must track.
 
 ### 14.3 The rate table, and how a rate step resolves
@@ -2183,7 +2183,7 @@ cap inside a true window. Defending a cap wants a structure chosen to defend
 it.
 
 **Both sides read this table at every time slot.** The speaking side's carrier-sense
-duty includes its own ledger — a time slot whose channel has no rate step left is
+duty includes its own ledger — a time slot whose channel has no allowance left is
 skipped like a busy one — and the receiving side's READY is a rate step decision
 too: the burst it invites will spend its ledger, at the rate step it names.
 
@@ -2306,7 +2306,7 @@ instrumentation we do not have and a simulator charges them by construction.
 | time slot guard | 40 ms | Each edge of a time slot's listening window. A time slot is reached from an idle task — a timer fires, the task wakes, retunes, senses, builds — and on hardware that path puts a time slot's opening frame 16–20 ms past its nominal moment. The window is sized to that slop and **not to the preamble**: a preamble is 16.6 ms at a calling SF7/125k and 2.1 ms at SF5/500k, so a window sized to it is generous exactly where the schedule is slow and shut before the speaker transmits exactly where it is fast. It also dominates clock drift across a schedule's whole lifetime (§7). |
 | time slot lateness | 20 ms | How late the speaking side may open a time slot before giving it up. Well inside the listener's tail, so a speaker that still tries is a speaker the listener is still hearing. |
 | hail interval | 300 ms, plus up to 200 ms of jitter | How long a hailer waits, after an immediate schedule's lifetime, for a hail-back before calling again. Long enough for a hailed party caught mid-frame on the calling channel to finish and hail; jittered so that two hailers of one busy peer do not retry in step. |
-| queue lifetime | 3 s | How long a packet may wait in the modem, from the moment it was queued, before it is dropped (§12). Per packet: a run's three hails, schedules and intervals fit inside one queue lifetime, with the channel-access waits in front of each hail, so the packet that started a run outlives it; it must sit well inside the daemon's shortest per-hop timer (§13). It also bounds the pending hail-back at the other end, which expires one queue lifetime after the hail it answers — a generous stand-in for the hailer's oldest packet. |
+| queue lifetime | 3 s | How long a packet may wait in the modem, from the moment it was queued, before it is dropped (§12). Per packet: an attempt series' three hails, schedules and intervals fit inside one queue lifetime, with the channel-access waits in front of each hail, so the packet that started a series outlives it; it must sit well inside the daemon's shortest per-hop timer (§13). It also bounds the pending hail-back at the other end, which expires one queue lifetime after the hail it answers — a generous stand-in for the hailer's oldest packet. |
 | hold | 1 s, doubling to 60 s; limit 10 s while the peer has been heard within the last minute | How long an unreachable peer is left alone between single hails at maximum power (§12). |
 
 **The retune gap is deliberately small, and the reason is that the silicon is
@@ -2325,16 +2325,16 @@ tolerance for a responder whose radio task is behind a storage commit or a
 display update. Shrinking it would tighten the deadlines and gain nothing,
 because nothing waits out a turnaround that has already been satisfied.
 
-**Patience is the one constant here that faces outward.** Every other value
+**Queue lifetime is the one constant here that faces outward.** Every other value
 bounds an exchange between two modems; this one bounds how long a modem may
 hold something the daemon believes it has sent. Too short, and a peer that was
 merely busy hails back to find nothing waiting; too long, and the daemon's own
 retransmission goes into the air beside the copy the modem still holds. It is
 measured per packet from the queue rather than per peer from a hail because
-the daemon's timer is per packet too, and a packet that joined a run late is
-no younger for it. Three seconds leaves a run its three hails with the
+the daemon's timer is per packet too, and a packet that joined a series late is
+no younger for it. Three seconds leaves an attempt series its three hails with the
 channel-access wait in front of each — a hail behind a busy calling channel
-waits a second and more for its turn, and a run that cannot afford three of
+waits a second and more for its turn, and a series that cannot afford three of
 those never reaches the hail at maximum power — and still leaves the daemon's
 six-second-a-hop arithmetic three seconds of margin. It is the value most
 worth measuring against real daemon behaviour (§16).
@@ -2351,7 +2351,7 @@ The deadlines that follow, all derived and none transmitted:
 | END | end of the burst's last frame | `turnaround + toa(END, n, rate step) + guard` |
 | the answer — BYE, RESEND or answering GOT | end of END | `turnaround + toa(answering GOT, rate step) + guard` — sized to the largest of the three, since which arrives is the answer itself |
 | a repair round's frames | the RESEND that asked | the resent frames' airtime plus gaps, computable from the bitmask, plus `guard` |
-| a hail-back | an immediate schedule's lifetime | the hail interval; then the next hail of the run, until the third goes unanswered |
+| a hail-back | an immediate schedule's lifetime | the hail interval; then the next hail of the series, until the third goes unanswered |
 
 Every one of them is computable by both sides from the frames already
 exchanged and the schedule already derived, which is what lets a failure be a
@@ -2371,7 +2371,7 @@ schedule's time slots are attended by exactly one listener, and the shared chann
 one SUPE frame beyond the announcement — the hail — is addressed to the one
 node whose measurements the controller holds.
 
-**The hail is the natural power probe.** §12's run is that probe run to
+**The hail is the natural power probe.** §12's attempt series is that probe run to
 conclusion: each hail at more power, the last at maximum. A peer whose
 attendance begins only at the third schedule has told the controller exactly
 where the cliff is, on frames it was going to spend anyway.
@@ -2450,11 +2450,13 @@ other move, and END states the result so the peer's pairing stays true.
 The same applies to the answering side's burst against the readings it was
 handed.
 
-**A exchange is a measurement machine, and its closing frames are the loop's
+**An exchange is a measurement machine, and its closing frames are the loop's
 acknowledgements.** Every READY and GOT reports how the last frame from its
 peer was heard — the hail, an opening GOT, or the burst's worst frame — which
 is the direction the reporter's peer transmits in, and which no transmitter
-can measure for itself. A calling-rate immediate exchange ends with the burst and
+can measure for itself. Those three all answer whoever OPENED the leg, so END
+carries a reading too — of the peer's last frame — and that is what the
+answering side's own transmit direction is measured by (§11). A calling-rate immediate exchange ends with the burst and
 reports nothing after it, so there the controller learns from the answer alone
 and the burst flies at the hail's power; it adapts between immediate exchanges, not
 inside one. And the
@@ -2469,7 +2471,7 @@ given power is the cliff announcing itself before anything is lost outright.
   suffices and the readings say how much room there is. Sustained, this walks
   the offset up.
 - **The readings report thin margin** — hold, do not reduce.
-- **A exchange's deadline lapses after contact was made** — the power may have
+- **An exchange's deadline lapses after contact was made** — the power may have
   been too low, or the channel died under them, and raising covers both. But
   the two are distinguishable more often than they look, and the peer's own
   report of our frames is what distinguishes them: put the power that just
@@ -2486,7 +2488,7 @@ given power is the cliff announcing itself before anything is lost outright.
   a power measurement: the hail power that drew attendance bounds the cliff
   from above, the ones that did not bound it from below. Nothing else varies
   between the attempts, which makes it the cleanest reading the controller
-  ever gets. A hail-back says less — the peer heard *some* hail of the run and
+  ever gets. A hail-back says less — the peer heard *some* hail of the series and
   was busy — so only attendance at a time slot binds the reading to a particular
   hail.
 - **A missed time slot, a follow-up schedule expiring, a hail answered by a hail-back, a
@@ -2509,19 +2511,20 @@ given power is the cliff announcing itself before anything is lost outright.
   it is the speaker's allowance, and the schedule's spacings, jitters and
   lifetimes. They set every deadline and every time slot, and with them how cheap a
   failed attempt is. First thing [`simulation.md`](simulation.md) should be
-  pointed at, and the schedule derivation wants a conformance vector file the
-  way the rate table has one (§14.3.4).
-- **Patience, the hail interval and the hold against the daemon's timers.**
+  pointed at; the schedule derivation's conformance vectors are in
+  `supe-schedule-vectors.txt`, beside the rate table's (§14.3.4), and move with
+  the constants.
+- **Queue lifetime, the hail interval and the hold against the daemon's timers.**
   The three bound how long a packet lives in the modem, and they are stated
   against a reading of the reference daemon's per-hop arithmetic rather than
   against a measurement of it under load. What wants checking is that a
   packet's drop at queue lifetime always precedes the daemon's retransmission of
-  it, and that an pending hail-back arriving after the traffic has expired is rare
+  it, and that a pending hail-back arriving after the traffic has expired is rare
   enough not to matter.
 - **The checksum function.** CRC-8 polynomial 0x07 is specified provisionally
   (§8); what it needs is to be identical at both ends, cheap per frame, and no
-  worse than 2⁻⁸ on the alignment match. Confirm the choice before first
-  implementation, since it cannot change inside a version.
+  worse than 2⁻⁸ on the alignment match. Confirm the choice while this version
+  is young, since it cannot change inside a version.
 - **A fixed-length framing exception for SF6 on family 1.** SF6 demands an
   implicit header on SX127x ([`afa.md`](afa.md) §4.1), so the protocol skips it
   and leaves such pairs with bandwidth entries alone — and, on a network
@@ -2538,7 +2541,7 @@ given power is the cliff announcing itself before anything is lost outright.
   behaviour on the SX126x; confirm the derived word list of §14.5 lands as the
   bin arithmetic says. The arithmetic is settled; the silicon's treatment of it
   wants checking.
-- **Channel plan 1.** Whether calling and exchange traffic land in one duty rate step or
+- **Channel plan 1.** Whether calling and exchange traffic land in one duty allowance or
   two.
 - **The reference count on tag entries.** Three bytes with a thousand live
   entries collides internally often enough to matter; confirm a count is enough
@@ -2604,7 +2607,7 @@ implementation properties are load-bearing enough that getting them wrong makes
 the protocol behave badly on air rather than merely making the code awkward,
 and they are stated here for that reason alone.
 
-**Meeting airtime is accounted separately from the calling channel's.** The
+**Exchange airtime is accounted separately from the calling channel's.** The
 claim that a node using SUPE stays cheap on the shared channel — and therefore
 stays in the low contention bands for the traffic that must still go there —
 depends on it. Credit an exchange's transmissions against the calling channel's
@@ -2622,7 +2625,7 @@ The pending hail-back is an input to the same function, not a second one: a node
 is free and owes a hail has a peer, a reason and a channel, and the answer is
 `now`.
 
-**The burst buffer is provisioned, not assumed.** Delivery at the close of a
+**The burst buffer is provisioned, not assumed.** Delivery at the close of an
 exchange (§8) means a receiver holds a whole burst in memory — count times the
 interface's frame size, per concurrent exchange, of which there is one. The
 count limit a node advertises and the ones its READYs state are promises
