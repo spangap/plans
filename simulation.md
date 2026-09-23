@@ -964,7 +964,7 @@ radio seam and the wire, and it is the testbed's first working form. It is
 written so that an agent can execute it without reading the rest of this
 plan; every hook point is named with its file and line as they stand.
 
-**Done means:** the chip build still builds; `build/reticulous.elf` exists for
+**Done means:** the chip build still builds; `build.linux/reticulous.elf` exists for
 `hw-linux`; one station prints `spangap ready` and answers on its TCP CLI; a
 browser on the macOS host loads a station's web UI; three stations exchange
 announces over the virtual LoRa and a message sent by hand from station a's
@@ -1456,7 +1456,7 @@ previous one passes.
 
 `sim/run.py` in the plans-adjacent `sim/` directory of the reticulous
 buildable (`reticulous/sim/`): starts the ether, then N stations from
-`reticulous/esp-idf/build/reticulous.elf` with the §17.4 environment, node
+`reticulous/esp-idf/build.linux/reticulous.elf` with the §17.4 environment, node
 ids 1..N, directories `sim/nodes/<id>/`, stdout to `sim/nodes/<id>/log`,
 stdin from a pty kept open; `--console <id>` attaches the terminal to that
 station's pty; `--ether-only`, `--nodes N`, `--fixed <dir>`. It also starts
