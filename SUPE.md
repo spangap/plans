@@ -199,7 +199,7 @@ for.
 
 ### 0.2 Channel plan 1 — nine channels, and what a channel plan adds
 
-A channel plan with a channel plan gives a hail somewhere to send the exchange: a
+A channel plan with agile channels gives a hail somewhere to send the exchange: a
 frequency nobody is sitting on. That turns the immediate exchange into a schedule —
 appointments derived from the hail's own bytes, on channels and under sync
 words the hail never names — and it makes the closing frames worth having at
@@ -305,8 +305,8 @@ channel from bytes they already hold, and the rate step byte means what the
 time slot's channel says it means. Channel plan is the only radio choice SUPE exposes. A
 network chooses one, every node on it runs the same one, and a node whose
 channel plan has expired stops speaking SUPE rather than speaking a stale protocol version
-(§3). Channel plan 0 needs no regulatory basis and runs anywhere; a channel plan with a
-channel plan is a claim about a jurisdiction, and channel plan 1 is the one this
+(§3). Channel plan 0 needs no regulatory basis and runs anywhere; a channel plan with agile
+channels is a claim about a jurisdiction, and channel plan 1 is the one this
 protocol currently makes.
 
 ### 0.3 Every frame and its fields
@@ -377,7 +377,7 @@ that is both the range and the resolution the silicon reports natively.
 
 **The main channel carries only what it takes to open an exchange.** Nothing
 else belongs there. Measurements, the receiver's terms and every verdict move
-to the answer, which in a channel plan with a channel plan is on a channel that is
+to the answer, which in a channel plan with agile channels is on a channel that is
 faster and bothers only the two parties involved.
 
 | Frame | Field | Size | Meaning |
@@ -683,7 +683,7 @@ the spreading factors above the calling one, at the calling bandwidth.
 **Channel plan 0's number is fixed; do not renumber it.** A frequency-agility setting
 that already exists on an interface will often document 0 as "no agile
 channels" rather than as a channel plan. The two readings agree in the only way that
-matters: channel plan 0 has no channel plan, so resolving its number to no agile
+matters: channel plan 0 has no agile channels, so resolving its number to no agile
 channels is correct whichever way it is read, and the setting can name the
 channel plan unchanged.
 
@@ -1017,7 +1017,7 @@ transmitted. This section is normative; its constants are channel plan constants
 (§3), and the values below are stated values awaiting
 [`simulation.md`](simulation.md), like §14.7's.
 
-**Only a channel plan with a channel plan derives a schedule.** An appointment is
+**Only a channel plan with agile channels derives a schedule.** An appointment is
 worth keeping on a frequency nobody else is sitting on; on the calling channel
 the moment it names is subject to everyone, and a hail there is answered in
 place instead (§8). Channel plan 0 reads none of what follows, and carries the salt
@@ -1063,9 +1063,11 @@ speaker = fixed by ROLE (below), never by the stream
 
 The immediate schedule's constants yield exactly two time slots, at 100 ms and at
 200–223 ms, and the second is never on the first's channel where the channel plan
-has a second channel to give. The follow-up schedule's spacing yields thirteen to
-fifteen time slots inside its lifetime. A conformance vector file over seeds belongs
-beside the rate table's (§14.3.4) once these constants settle (§16).
+has a second channel to give. The follow-up schedule's spacing yields eleven or
+twelve time slots inside its lifetime. The conformance vectors over seeds are in
+`supe-schedule-vectors.txt`, beside the rate table's (§14.3.4), and bind the same
+way: an implementation is conformant iff it reproduces that file exactly. They
+cover channel plan 1 only, since channel plan 0 derives no schedule.
 
 **Two seeds exist and they differ in parameters and in who speaks:**
 
@@ -2139,8 +2141,8 @@ implementation is conformant with this section if and only if it reproduces
 Each line gives the inputs, the rate table length, and every `(index, sf, bw,
 low_data_rate)` it resolves to. The file is generated from the rules above and
 is the authority when it and a reading of the prose disagree. The schedule
-derivation of §7 wants the same treatment — a vector file over seeds — once its
-constants settle (§16).
+derivation of §7 has the same treatment in `supe-schedule-vectors.txt`, over
+channel plan 1.
 
 This is the same discipline a cryptographic test vector serves, and for the
 same reason: the failure being guarded against is silent divergence between two
