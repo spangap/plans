@@ -899,7 +899,7 @@ already carrying:
 |---|---|
 | a transport identity | the announcement (§9) that listed it. Nothing else can: it is never announced by Reticulum, and a relayed announce's claim to it is a claim about who transmitted, which no signature covers |
 | a destination hash | the Reticulum announce that carried that destination's public key, whose truncated hash is the identity (§2) |
-| a link identifier | the node the link request was handed to, recorded as the request goes past: the destination where it was dialled directly, and the relay named in the request's first address field where it was dialled through one. Never the far end of a path — every frame of a session goes to the first hop, and a link to a destination behind a gateway is a link to the gateway as far as the air is concerned |
+| a link identifier | at an endpoint, the node the link request was handed to, recorded as the request goes past: the destination where it was dialled directly, and the relay named in the request's first address field where it was dialled through one. Never the far end of a path — every frame of a session goes to the first hop, and a link to a destination behind a gateway is a link to the gateway as far as the air is concerned. At a relay the link has two parties on the air, the neighbour the request came from and the neighbour it was handed to, and a frame of the link resolves to the party it did not come from (§11). A frame whose party of origin the relay cannot tell resolves to nobody, and goes on the shared channel as plain traffic |
 | an identity hash | the announcement that listed it — the one tag a hail-back carries, and the one a hailer must be able to resolve to the node that owes it nothing more than an answer |
 
 Capabilities and measurements hang off the node — the set of identities one
@@ -920,6 +920,14 @@ named. It has one meaning: an address the peer holds. There is no type, no flag
 and no second interpretation, because the receiver has one flat table (§5), a
 hit is a hit, and what follows — derive, attend, speak, and let the daemon
 judge — never depends on why the entry is there.
+
+One packet is not tagged with its first address field: a link frame a relay
+carries. Both of the relay's neighbours on that link hold the link identifier,
+and a tag names one peer. So a relayed link frame is tagged with an address the
+party it goes to (§5.1) alone holds — one of that neighbour's announced
+destinations, its transport identity, or an identity its ANNOUNCE listed. A
+neighbour none of those names is not hailed; the frame goes on the shared
+channel as plain traffic.
 
 That includes delivery proofs, which are addressed to the truncated hash of the
 packet being proved. Exactly two nodes hold that hash: the origin, in its
@@ -1610,12 +1618,23 @@ Two bindings that save a slow first exchange:
   sides compute the same link identifier independently and file everything
   under it, so all later traffic on that link opens at the peer's best rate step.
 
-  Every hop of a relayed request computes it too, and files it against the node
-  it hands the request to. This is the whole of what makes a session through a
-  gateway meetable: a link's frames name the link and nothing else — no
-  destination, no transport identity — so a link identifier filed against
+  Every hop of a relayed request computes it too, and files it against both of
+  the link's parties on the air: the neighbour it hands the request to, known
+  as it is handed on, and the neighbour the request came from, known by name
+  once a frame of the link arrives from it as an exchange's cargo, since a
+  request in the clear names nobody. Each party is filed with the hop count the
+  link's frames arrive from it with. This is the whole of what makes a session
+  through a gateway meetable: a link's frames name the link and nothing else —
+  no destination, no transport identity — so a link identifier filed against
   nobody is a session that can only ever contend on the shared channel, which
   on a gateway is most of the traffic there is.
+
+  A relayed frame of the link goes to the party it did not come from. The
+  party it came from is the one whose schedule carried it, where it arrived as
+  cargo, or the one whose hop count it arrived with, where the two parties'
+  hop counts differ. A frame that arrived in the clear from two parties equally
+  far away has no telling direction; it is relayed on the shared channel as
+  plain traffic, and the party it is for hears it as it would without SUPE.
 
   The dialled side has to file it against the *node* as well, and the hail's
   sender identity is the only thing that lets it. A link request names nobody —
