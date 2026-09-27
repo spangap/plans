@@ -43,7 +43,7 @@ Timing, EN 300 220-1 table 48:
 | Minimum deferral period | = CCA interval |
 | Dead time (CCA end → transmit start) | declared, ≤ 5 ms |
 | Ton_max, single transmission | 1 s |
-| Ton_max, immediate exchange or polling sequence | 4 s |
+| Ton_max, transmission dialogue or polling sequence | 4 s |
 | **Max Tcum_on** | **100 s per hour per 200 kHz of spectrum** |
 | Toff_min, same operating frequency | 100 ms |
 

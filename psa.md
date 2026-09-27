@@ -112,14 +112,16 @@ buy more accumulated transmission time is the same idea read from the other
 side: the cumulative allowance is described in terms of the channel structure
 agility provides.
 
-**[verify — whether EN 300 220-1 clause 5.21 defines an LBT-without-AFA category
-at all, and if it does, what Tcum_on it carries.]** `afa.md` §1's table
-summarises the same table B.1 cell as a plain "PSA: yes" for all four entries;
-that is a summary of the identical wording and needs the same check. Nothing in
-either file should be read as establishing that a fixed-frequency node can claim
-100 s/h.
+The texts do not settle it. The band cells of EN 300 220-2 V3.2.1 table B.1 and
+V3.3.1 table 4 read "or polite spectrum access", and V3.3.1 clause 4.6.1.0 makes
+the channel change optional ("equipment may select another operating
+frequency"); but the column header, the Annex G declaration box ("LBT + AFA
+(polite spectrum access)") and ERC Recommendation 70-03 Annex 1 ("LBT with AFA
+technique feature may be used instead of duty cycle") all name LBT+AFA. `afa.md`
+§1's table summarises the same cell as a plain "PSA: yes" for all four entries.
+Nothing in either file establishes that a fixed-frequency node can claim 100 s/h.
 
-Until that is checked, take the conservative reading: **on the reticulum channel
+Take the conservative reading: **on the reticulum channel
 the duty cycle is not the better option, it is the only one.** That makes the
 decision easy and leaves only the question of placement — which is currently a
 user setting with no default (`s.lora.<n>.frequency`, "region/antenna
@@ -136,10 +138,11 @@ dependent"):
 The last row is the odd one out and it is where the Reticulum LoRa community in
 Europe generally sits. It is deliberately outside `afa.md`'s scope (that plan
 stops at 869.2), and it is the only entry in reach with 500 mW e.r.p. rather
-than 25 mW — 100× the power and 10× the airtime of the K and N entries.
-**[verify]** its exact edges, power limit and duty cycle against the current
-EN 300 220-2 table B.1 and the national table; I am quoting it from memory and
-it is the single most consequential number in this file.
+than 25 mW — 100× the power and 10× the airtime of the K and N entries. Its
+edges, power and duty cycle are those of EN 300 220-2 V3.2.1 table B.1 band P
+(V3.3.1 table 4 band O) and ERC Recommendation 70-03 Annex 1 entry h1.7, which
+also allow polite spectrum access there in place of the 10 %; under it the CCA
+threshold takes the 100–500 mW margin, −85 dBm at BW125.
 
 If the calling channel lands there, the trade is exactly right for a broadcast
 announce channel: 360 s/h at 13 dB more power, no sensing timing discipline, no
@@ -193,7 +196,7 @@ frame queued for a burst channel switch
   │
   ├─ dead time   ≤5 ms, declared and measured — carrier up
   │
-  ├─ Ton         ≤1 s single transmission, ≤4 s immediate exchange or polling sequence
+  ├─ Ton         ≤1 s single transmission, ≤4 s transmission dialogue or polling sequence
   │
   └─ TxDone      credit the ledger, stamp this channel's Toff
 ```
@@ -237,21 +240,20 @@ the nine can have PSA while it does not.
 | At BW125 / BW250 / BW500 | −81 / −78 / −75 dBm |
 | Reference | 0 dBd (+2.15 dBi); other antenna gain shifts it by the difference |
 | Minimum CCA interval | 160 µs |
-| Measurement bandwidth | ≥ the OBW of the transmission that follows **[verify]** |
+| Measurement bandwidth | the operating channel width (EN 300 220-2 V3.3.1 table 11; its CCA test, table 60, measures at RBW = OCW) |
 
-The threshold derives from the table 32 receiver-sensitivity limit
-`-117 + 10·log₁₀(RB_kHz)`, offset by 15 dB. Every channel in the plan is 25 mW,
-so only the < 100 mW row ever applies and those three numbers are the complete
-set.
+The threshold derives from the receiver-sensitivity limit
+`-117 + 10·log₁₀(RB_kHz)` (EN 300 220-1 V3.1.1 table 32; V3.3.1 table 11 writes
+it on the operating channel width), offset by 15 dB below 100 mW e.r.p. and by
+11 dB from 100 to 500 mW (V3.1.1 table 45, V3.3.1 table 17). Every channel in the
+plan is 25 mW, so only the < 100 mW row ever applies and those three numbers are
+the complete set.
 
-**Adaptive power interacts with this.** EN 300 220-1 permits the threshold to be
-relaxed when the transmitter runs below its declared maximum — a device
-transmitting 10 dB down interferes 10 dB less and may tolerate more ambient
-energy. The exact wording and whether the relaxation is capped is **[verify]**,
-and it matters directly to
-[`adaptive-power.md`](adaptive-power.md): if the relaxation exists as I remember
-it, a per-neighbour power decision also moves the CCA threshold for that frame,
-and the two loops share a variable rather than composing cleanly.
+**The threshold does not follow the transmit power.** Neither table 45 nor
+table 17 relaxes it for a transmitter running below its declared maximum; the
+only adjustments are the two e.r.p. rows and antenna gain. A per-neighbour
+power decision ([`adaptive-power.md`](adaptive-power.md)) therefore leaves the
+CCA threshold where it is, and the two loops compose without sharing a variable.
 
 ### 2.4 The timing
 
@@ -261,7 +263,7 @@ and the two loops share a variable rather than composing cleanly.
 | Minimum deferral period after a busy CCA | = CCA interval |
 | Dead time, CCA end → transmit start | declared, ≤ 5 ms |
 | Ton_max, single transmission | 1 s |
-| Ton_max, immediate exchange or polling sequence | 4 s |
+| Ton_max, transmission dialogue or polling sequence | 4 s |
 | Toff_min, same operating frequency | 100 ms |
 | Max Tcum_on | 100 s per hour per 200 kHz of spectrum |
 
@@ -289,24 +291,25 @@ cap.
 saturated burst channel switch walks into it — so the ledger is a real gate, not a
 formality. It is also the number that makes §5's calibration mismatch matter.
 
-### 2.6 The immediate exchange exemption
+### 2.6 A dialogue is not exempt from CCA
 
-The 4 s Ton_max for a "immediate exchange or polling sequence" is the regulator
-acknowledging that a request/response exchange cannot re-run CCA between every
-frame without the gaps swallowing it. Within an immediate exchange, subsequent
-transmissions may follow without a fresh CCA up to that 4 s **[verify — the
-exact conditions, in particular the maximum permitted gap between frames and
-whether both ends may rely on it]**.
+The 4 s Ton_max for a "transmission dialogue or a polling sequence"
+(EN 300 220-1 V3.1.1 table 48, EN 300 220-2 V3.3.1 table 18) is a limit on
+on-time, not an exemption from CCA. No V3.x edition lets later frames of a
+dialogue skip the assessment. The one explicit exemption in the series is
+EN 300 220-1 V2.4.1 clause 9.2.4, since superseded, and it covers the
+acknowledgement alone: "The LBT procedure has to be followed before a further
+transmission in a communications session can be made."
 
 This is load-bearing for [`SUPE.md`](SUPE.md): its channel switch is an offer, a
 readiness frame, a manifest and a back-to-back burst, explicitly with **no carrier
 sense once the pair is off the calling channel**, sized at up to one second of
 burst.
-That structure is legal under PSA only as an immediate exchange, and both directions
-together must fit inside 4 s. Reading this clause precisely is a prerequisite
-for building the burst channel, not a detail to settle afterwards — if the
-exemption is narrower than assumed, the burst needs a CCA and a ≤5 ms dead time
-between every frame, and the entire timing argument collapses.
+Under PSA that structure has no exemption to rest on: each frame of the exchange
+needs its own CCA, followed within the dead time by the carrier, and both
+directions together must still fit inside the 4 s dialogue Ton_max. The burst's
+timing argument has to be rebuilt on that basis before the burst channel can
+claim PSA.
 
 ### 2.7 What gets declared
 
@@ -849,39 +852,37 @@ pressure is correct and must be counted; blocking the radio task is not.
 
 ## 7. Open questions
 
-1. **Whether LBT without AFA buys anything at all** (§1.3). Table B.1's
-   alternative to the duty cycle reads as LBT+AFA, so the working assumption is
-   that a fixed-frequency node has no route out of its duty cycle. Confirm
-   against clause 5.21 rather than against `afa.md`'s summary of the same cell.
-2. **Where the reticulum channel is placed, and that entry's real limits**
-   (§1.3). Sets the duty cycle it lives under; currently a user setting with no
-   default.
+1. **Whether LBT without AFA buys anything at all** (§1.3). The band cells say
+   "or polite spectrum access", the declaration box and ERC 70-03 say LBT+AFA,
+   so the working assumption is that a fixed-frequency node has no route out of
+   its duty cycle. Needs a ruling, not a closer reading.
+2. **Where the reticulum channel is placed** (§1.3). Sets the duty cycle it
+   lives under; currently a user setting with no default.
 3. **Whether one device may declare duty cycle on one channel and LBT+AFA on
    nine** (§2.2). The two-channel plan design assumes yes throughout.
-4. **The immediate exchange exemption's exact conditions** (§2.6) — gates the burst
-   protocol.
-5. **The adaptive-power threshold relaxation** (§2.3) — couples PSA to
-   `adaptive-power.md`.
-6. **CCA measurement bandwidth** — must the receiver bandwidth match the
-   transmission's OBW or merely cover it? Decides whether one wide sense can
-   clear a narrow transmission.
-7. **Sliding vs fixed hour** (§1.3) — materially different implementations, and
+4. **Sliding vs fixed hour** (§1.3) — materially different implementations, and
    the answer applies to both channel plans' ledgers.
-8. **Ledger persistence across power cycles** (§6.2).
-9. **Ton_max at high SF.** A 255-byte SF12/BW125 frame is well past 1 s of air.
+5. **Ledger persistence across power cycles** (§6.2).
+6. **Ton_max at high SF.** A 255-byte SF12/BW125 frame is well past 1 s of air.
    Either the PSA path caps frame size per modem config, or high-SF steps are
    PSA-ineligible — which contradicts the single-declaration reading. Needs
    resolving before the modem rate table is frozen.
-10. **The SX126x preamble detector's real symbol requirement** (§3.4). The
-    scanning arithmetic is only as good as that number.
+7. **The SX126x preamble detector's real symbol requirement** (§3.4). The
+   scanning arithmetic is only as good as that number.
 
 ## 8. Sources
 
 - ETSI EN 300 220-1 V3.1.1 (2017-02) — clause 5.21 (tables 45, 46, 48),
   clause 5.14 (table 32)
 - ETSI EN 300 220-2 V3.2.1 (2018-06) — annex B table B.1, clause 4.5.4 (AFA)
-- CEPT/ERC Recommendation 70-03 — the CEPT-wide position and the national
-  entries, including the 869.4–869.65 allocation §1.3 depends on
+- ETSI EN 300 220-2 V3.3.1 (2025-03) — clause 4.6 (tables 11, 17, 18), table 4.
+  Polite spectrum access stands on its own here: the sensitivity and threshold
+  are written on the operating channel width, and the minimum deferral period
+  and the dead-time rows of V3.1.1 table 48 are gone
+- ETSI EN 300 220-1 V2.4.1 (2012), superseded — clause 9.2.4, the
+  acknowledgement exemption §2.6 cites
+- CEPT/ERC Recommendation 70-03 (February 2025), Annex 1 — entries h1.3–h1.9,
+  including h1.7, the 869.4–869.65 allocation §1.3 depends on
 - SX1261/2 datasheet — `SetCad` parameters, `GetRssiInst`, image-calibration
   bands, transceiver timings, PA ramp
 - RNode firmware — `Config.h` *CSMA Parameters*, `update_csma_parameters()`,
@@ -890,5 +891,6 @@ pressure is correct and must be counted; blocking the radio task is not.
 - `hw-lilygo-t3s3-sx1262/INTERNALS.md` §2 — the two SPI hosts §3.1 counts
 - Semtech AN1200.22 / SX127x datasheet — CAD behaviour and its limits
 
-Both ETSI documents are the editions cited in `afa.md`; check for newer
-revisions before certifying anything.
+The timing tables in §2.4 are V3.1.1 table 48's; whether V3.3.1 is the edition
+cited in the Official Journal decides which set a declaration is measured
+against.
