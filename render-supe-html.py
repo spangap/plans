@@ -56,7 +56,7 @@ MASTHEAD = """<header class="masthead">
 </header>"""
 
 FOOTER = """<footer>
-<p>Normative source: <code>plans/SUPE.md</code>. Companion derivations: <code>afa.md</code> (channel plan and rate table margins), <code>psa.md</code> (calling-channel access), <code>simulation.md</code> (where the stated constants get measured). Conformance: <code>supe-rate-table-vectors.txt</code> and <code>supe-schedule-vectors.txt</code>.</p>
+<p>Normative source: <code>plans/SUPE.md</code>. Companion derivations: <code>afa.md</code> (channel plan and rate table margins), <code>psa.md</code> (calling-channel access), SIMesh (where the stated constants get measured). Conformance: <code>supe-rate-table-vectors.txt</code> and <code>supe-schedule-vectors.txt</code>.</p>
 </footer>"""
 
 # Paragraphs set as regulatory callouts, by their opening words (§14.2).

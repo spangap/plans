@@ -6,7 +6,7 @@
 > and adaptive power in §15. The rate table's conformance vectors in
 > `supe-rate-table-vectors.txt` are the §14.3.4 authority; the schedule and timing
 > constants of §7 and §14.7 are stated values, and
-> [`simulation.md`](simulation.md) is where they are meant to be settled.
+> [SIMesh](../SIMesh/INTERNALS.md#still-to-build) is where they are meant to be settled.
 >
 > `sender_ident` (§4) is what makes the return direction and the hail-back possible
 > at all, and it is the one thing here that gives up sender anonymity, so it
@@ -1023,7 +1023,7 @@ A schedule is a pure function of one frame both ends hold — the **seed** — a
 of the roles the exchange around that frame fixed. Nothing about it is
 transmitted. This section is normative; its constants are channel plan constants
 (§3), and the values below are stated values awaiting
-[`simulation.md`](simulation.md), like §14.7's.
+[SIMesh](../SIMesh/INTERNALS.md#still-to-build), like §14.7's.
 
 **Only a channel plan with agile channels derives a schedule.** An appointment is
 worth keeping on a frequency nobody else is sitting on; on the calling channel
@@ -2313,7 +2313,7 @@ that a new part gets a number rather than a compatibility rule.
 Every deadline in this protocol is derived from the constants below and a time
 on air. They are channel plan constants (§3) and all of them are stated values rather
 than measurements — the open item that most wants
-[`simulation.md`](simulation.md), because a bench measurement of them needs
+[SIMesh](../SIMesh/INTERNALS.md#still-to-build), because a bench measurement of them needs
 instrumentation we do not have and a simulator charges them by construction.
 
 | Constant | Value | What it is |
@@ -2531,7 +2531,7 @@ given power is the cliff announcing itself before anything is lost outright.
   turnaround, the retune gap, the burst gap, the guard, the seed gap now that
   it is the speaker's allowance, and the schedule's spacings, jitters and
   lifetimes. They set every deadline and every time slot, and with them how cheap a
-  failed attempt is. First thing [`simulation.md`](simulation.md) should be
+  failed attempt is. First thing [SIMesh](../SIMesh/INTERNALS.md#still-to-build) should be
   pointed at; the schedule derivation's conformance vectors are in
   `supe-schedule-vectors.txt`, beside the rate table's (§14.3.4), and move with
   the constants.
@@ -2641,7 +2641,7 @@ protocol deliberately does not specify it, because the right answer varies with
 traffic shape and nobody has measured it yet. What the protocol does require is
 that the decision be *findable*: a policy scattered across a transmit path
 cannot be measured, cannot be replaced, and cannot be simulated.
-[`simulation.md`](simulation.md) §7 is written against exactly that signature.
+[SIMesh](../SIMesh/INTERNALS.md#still-to-build)'s traffic scripts are written against exactly that signature.
 The pending hail-back is an input to the same function, not a second one: a node that
 is free and owes a hail has a peer, a reason and a channel, and the answer is
 `now`.
