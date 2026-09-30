@@ -5,7 +5,7 @@
 > `iface-lora/INTERNALS.md`, which is the current-contract document — this
 > file is the plan that got there. Companion to [`SUPE.md`](SUPE.md), which
 > specifies the protocol this carries, and
-> [SIMesh](../SIMesh/INTERNALS.md#still-to-build), which is where the policy
+> [sim-mesh](../sim-mesh/INTERNALS.md#still-to-build), which is where the policy
 > questions it exposes get answered.
 
 ## Objectives
@@ -260,7 +260,7 @@ int should_channel switch(const PeerView*, const QueueView*, const ChanView*,
 
 Pure, no side effects, no radio access, one call site. SUPE.md §18 requires only
 that it be findable; what it should decide is a question for
-[SIMesh](../SIMesh/INTERNALS.md#still-to-build)'s traffic scripts. Do not scatter it across the transmit path,
+[sim-mesh](../sim-mesh/INTERNALS.md#still-to-build)'s traffic scripts. Do not scatter it across the transmit path,
 and do not commit to a rule before it can be measured.
 
 ## 6. What the revised protocol forces
@@ -430,7 +430,7 @@ context in debug builds rather than trusting a comment.
   `rns/esp-idf/src/rnsd.cpp` are where to read before sizing any cap.
 - **What `should_channel switch` should decide** (§5). Simulation, not argument.
 - **Whether the observer's identity inference survives contact with the reference
-  implementation.** The Python reference Reticulum as a SIMesh station kind
+  implementation.** The Python reference Reticulum as a sim-mesh station kind
   is how to find out.
 - **Whether the event ring should persist across a reboot.** It is the only record
   of what actually went out, and every debugging session so far has wanted the
@@ -457,7 +457,7 @@ build once.
 **The spec is [`SUPE.md`](SUPE.md)** and it describes the *revised* protocol; the
 code implements the superseded one. Where code and spec disagree, the spec wins
 and the code is what this plan exists to change. `afa.md` and `psa.md` carry
-derivations; [SIMesh](../SIMesh/INTERNALS.md#still-to-build) holds the deliberately-unanswered
+derivations; [sim-mesh](../sim-mesh/INTERNALS.md#still-to-build) holds the deliberately-unanswered
 policy questions — do not answer them in code.
 
 **Settings.** Keys live in `straddle.yaml` (SUPE section: `enable`, `afa`,

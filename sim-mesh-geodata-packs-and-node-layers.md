@@ -1,9 +1,9 @@
-# SIMesh: building geodata packs, and nodesets as layers
+# sim-mesh: building geodata packs, and nodesets as layers
 
-SIMesh makes its own ground from public sources, moves it between machines
-as a **SIMesh geodata pack**, and treats nodesets as layers that can be
+sim-mesh makes its own ground from public sources, moves it between machines
+as a **sim-mesh geodata pack**, and treats nodesets as layers that can be
 shown, hidden, imported from the public node maps and merged. After this,
-nothing in SIMesh needs Sergey's planner repository.
+nothing in sim-mesh needs Sergey's planner repository.
 
 Status: agreed 2026-09-27, ready to build in the order at the end.
 
@@ -20,7 +20,7 @@ Three buttons, one per way of getting ground. Clicking a row opens it on
 the map as now, and that view's toolbar has **Export zip**. Nothing else
 creates or moves geodata.
 
-### A SIMesh geodata pack
+### A sim-mesh geodata pack
 
 A zip holding `geodata.yaml` at the top and, for ground built from sources,
 the planner pack under `pack/`, with the yaml's `pack:` pointing there. A
@@ -29,7 +29,7 @@ also a bare planner pack (a `manifest.json` at the top or inside one
 directory), which becomes pack geodata. The name is asked, defaulting to the
 one in the zip.
 
-**Nodes are never part of a SIMesh geodata pack.** The compiler is never
+**Nodes are never part of a sim-mesh geodata pack.** The compiler is never
 given a nodes CSV, export leaves out any `Nodes` layer and its manifest
 entry, and import drops one found in a bare planner pack (as
 `packs/berlin-city/nodes.bin` has now). Nodes belong to nodesets, which
@@ -119,9 +119,9 @@ district costs megabytes rather than the city's 12 GB.
 
 ### The compiler
 
-`planner-pack`'s `build` is the compiler SIMesh already carries. What is new:
+`planner-pack`'s `build` is the compiler sim-mesh already carries. What is new:
 
-- **`planner-job`**, a binary crate in `SIMesh/planner`: `pack-build` takes
+- **`planner-job`**, a binary crate in `sim-mesh/planner`: `pack-build` takes
   `BuildParams` as JSON on standard input and writes one JSON line per step to
   standard output (`{"step":"clutter","done":3,"total":12}`), then the
   manifest's path. It holds no fetching; the front hands it files.
@@ -133,7 +133,7 @@ district costs megabytes rather than the city's 12 GB.
   `building_top` and `built_fraction` that LoD2 fills. Height is the
   `height` tag; else `building:levels` × 3 m plus a roof; else the class
   default. `planner-buildings`, which holds those rules and the per-building
-  height source, comes into `SIMesh/planner` for it. Each building keeps
+  height source, comes into `sim-mesh/planner` for it. Each building keeps
   where its height came from, and the pack's `DataQuality` layer says which
   cells rest on tagged heights and which on defaults.
 
@@ -194,7 +194,7 @@ purpose, and PotatoMesh already carries the Meshtastic nodes that are there.
 Every imported node gets the default device, the height the dialog asks
 where the source has none (marked assumed), and tags for its source, its
 kind (repeater, room server, companion, router) and its position quality.
-The parsing is `planner-import`'s, brought into `SIMesh/planner` and run as
+The parsing is `planner-import`'s, brought into `sim-mesh/planner` and run as
 `planner-job nodes-import` in the same way as `pack-build`.
 
 Measurements (Meshtastic range-test CSVs, PotatoMesh neighbour and trace
@@ -212,7 +212,7 @@ offsets are to come from, and are not in this plan.
 
 ## Order
 
-1. SIMesh geodata pack: Export zip, Import zip, Nodes layers dropped,
+1. sim-mesh geodata pack: Export zip, Import zip, Nodes layers dropped,
    attribution on the map.
 2. `planner-job` with `pack-build` over what the compiler reads today, the
    cache, the fetchers for GLO-30, WorldCover, the ITU maps, Geofabrik, and

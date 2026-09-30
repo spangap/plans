@@ -1,8 +1,8 @@
-# Other ESP32 Reticulum nodes as SIMesh stations
+# Other ESP32 Reticulum nodes as sim-mesh stations
 
 ## Goal
 
-Run two other firmwares' transport nodes on the SIMesh ether beside Reticulous stations, standing in for Heltec V4s. The aim is to measure how their path-request forwarding behaves on a shared LoRa channel.
+Run two other firmwares' transport nodes on the sim-mesh ether beside Reticulous stations, standing in for Heltec V4s. The aim is to measure how their path-request forwarding behaves on a shared LoRa channel.
 
 1. **attermann/microReticulum_Firmware** (Chad Attermann, the microReticulum author), built from its own native Linux target.
 2. **A jrl290 stand-in**: the same attermann build with RTNode-HeltecV4's path-request rules carried onto the stack. It is not jrl290's firmware.
@@ -11,14 +11,14 @@ Background on the firmwares and their forwarding behaviour is in `plans/competit
 
 ## Principle: keep changes to attermann's code small and upstreamable
 
-Every change to attermann's tree is a generic hook or setting that is useful on real hardware and could be sent to him as a pull request. The SIMesh-specific code lives outside his tree. So:
+Every change to attermann's tree is a generic hook or setting that is useful on real hardware and could be sent to him as a pull request. The sim-mesh-specific code lives outside his tree. So:
 
-- No SIMesh names and no `#ifdef SIMESH` in his files.
+- No sim-mesh names and no `#ifdef SIM_MESH` in his files.
 - Hooks are weak functions whose default is today's behaviour, so an unmodified build behaves exactly as before.
 - Timing values are build flags, not code edits.
 - One commit per hook in the clone, so each can go upstream on its own.
 
-If he takes all of them, the only thing left in his repo is the `[env:simesh]` block in `platformio.ini`.
+If he takes all of them, the only thing left in his repo is the `[env:sim-mesh]` block in `platformio.ini`.
 
 ## Where things are
 
@@ -40,8 +40,8 @@ Portduino is Meshtastic's Arduino-API layer for Linux. Arduino firmware built on
 
 The facts that decide the port, all checked in the source:
 
-- **SPI (Serial Peripheral Interface) framing is already whole-frame on native.** Under `#if MCU_VARIANT == MCU_NATIVE`, every `sx126x.cpp` bus operation assembles its whole frame and makes one in-place `SPI.transfer(buf, len)` between `digitalWrite(_ss, LOW)` and `digitalWrite(_ss, HIGH)`. That covers `singleTransfer`, `executeOpcode`, `executeOpcodeRead`, `writeBuffer` and `readBuffer`. The reason is that spidev drops chip-select between ioctls. That is exactly SIMesh's one-frame-per-NSS-cycle (chip select) rule, so **`sx126x.cpp`'s bus code needs no change**.
-- **BUSY never blocks.** `waitOnBusy()` spins on `digitalRead(_busy)` against `millis()`, but the SIMesh chip model never drives BUSY high (`SIMesh/radio/src/model.cpp:509`). The spin exits on its first read, even in virtual time.
+- **SPI (Serial Peripheral Interface) framing is already whole-frame on native.** Under `#if MCU_VARIANT == MCU_NATIVE`, every `sx126x.cpp` bus operation assembles its whole frame and makes one in-place `SPI.transfer(buf, len)` between `digitalWrite(_ss, LOW)` and `digitalWrite(_ss, HIGH)`. That covers `singleTransfer`, `executeOpcode`, `executeOpcodeRead`, `writeBuffer` and `readBuffer`. The reason is that spidev drops chip-select between ioctls. That is exactly sim-mesh's one-frame-per-NSS-cycle (chip select) rule, so **`sx126x.cpp`'s bus code needs no change**.
+- **BUSY never blocks.** `waitOnBusy()` spins on `digitalRead(_busy)` against `millis()`, but the sim-mesh chip model never drives BUSY high (`sim-mesh/radio/src/model.cpp:509`). The spin exits on its first read, even in virtual time.
 - **Portduino's SPI can be replaced without patching Portduino.** `HardwareSPI` holds a `std::shared_ptr<SPIChip> spiChip`, which is protected (`portduino/ArduinoCore-API/api/HardwareSPI.h:132`). `HardwareSPI::begin()` creates a chip only when `spiChip` is null (`portduino/cores/portduino/linux/LinuxHardwareSPI.cpp`). `SPIChip` is a small virtual interface: `transfer(out, in, len, deassertCS)`, `beginTransaction` and `endTransaction` (`portduino/cores/portduino/SPIChip.h`). So we can set the global `SPI`'s chip to our own `SPIChip` before the driver calls `SPI.begin()`. A derived-class accessor can reach the protected member.
 - **Portduino's GPIO can be replaced too.** `gpioBind(GPIOPinIf*)` swaps the implementation of one pin number (`portduino/cores/portduino/PortduinoGPIO.cpp`). Subclassing `GPIOPin` and overriding `readPinHardware()` and `writePin()` gives us NSS, reset, BUSY and DIO1. Interrupt service routines (ISRs) run through polling: Portduino's main loop calls `gpioIdle()` before each `loop()`, which calls `refreshIfNeeded()` on every pin with an ISR. That reads `readPinHardware()` and fires the ISR on the edge, on the main thread.
 - **The main loop's sleep switches off.** Portduino's `main()` runs `gpioIdle(); loop();` and then `delay(loopDelay)` (100 ms) **only when `realHardware` is false** (`portduino/cores/portduino/main.cpp:170-178`). `gpioBind` sets `realHardware = true`. With our pins bound, the loop spins with no sleep at all, never blocks, and a virtual-time run never sees the station idle.
@@ -57,12 +57,12 @@ The facts that decide the port, all checked in the source:
   - The KISS TCP accept and idle sweep, polled.
 
   Receive is not a deadline: DIO1 raises RX-done.
-- **Time goes through the C library.** Portduino's `millis()` and `micros()` are `gettimeofday` (`portduino/cores/portduino/linux/millis.cpp`), and `delay` is a C library sleep (`linux/LinuxCommon.cpp`). The SIMesh time shim answers both.
-- **Reboot re-execs the process.** `native/reboot.cpp` re-execs itself by absolute path. SIMesh wants a station to exit and be restarted by its supervisor. A re-exec would reopen the ether link under the same `sid` inside one process.
-- **KISS over TCP always listens.** `native/main.cpp:203` always calls `native_kiss_tcp::init(kiss_tcp_port, kiss_tcp_public)`, which binds `INADDR_LOOPBACK` or `INADDR_ANY` (`native/TCPHostInterface.cpp:133-157`). A failed bind is not fatal. The WebSocket console (`-DENABLE_WEBSOCKETS`) listens on port 8080. Every socket a SIMesh station opens must bind `SIMESH_BIND_ADDR`.
+- **Time goes through the C library.** Portduino's `millis()` and `micros()` are `gettimeofday` (`portduino/cores/portduino/linux/millis.cpp`), and `delay` is a C library sleep (`linux/LinuxCommon.cpp`). The sim-mesh time shim answers both.
+- **Reboot re-execs the process.** `native/reboot.cpp` re-execs itself by absolute path. sim-mesh wants a station to exit and be restarted by its supervisor. A re-exec would reopen the ether link under the same `sid` inside one process.
+- **KISS over TCP always listens.** `native/main.cpp:203` always calls `native_kiss_tcp::init(kiss_tcp_port, kiss_tcp_public)`, which binds `INADDR_LOOPBACK` or `INADDR_ANY` (`native/TCPHostInterface.cpp:133-157`). A failed bind is not fatal. The WebSocket console (`-DENABLE_WEBSOCKETS`) listens on port 8080. Every socket a sim-mesh station opens must bind `SIM_MESH_BIND_ADDR`.
 - **The LoRa interface mode is already a provisioning field.** `PROV_GENERAL_LORA_MODE` (`Provisioning.cpp:190-215`) offers gateway, full, point-to-point, access point, roaming and boundary, and applies live.
 - **The sync word is RNode's, 0x12**, not Reticulous's 0x42.
-- **The SIMesh model applies the board's front end.** The model applies the Heltec V4's GC1109 front-end curve and receive gain from `SIMESH_BOARD` (`SIMesh/radio/src/model.cpp:168-220`). The firmware sets chip power, and the ether sees power at the antenna.
+- **The sim-mesh model applies the board's front end.** The model applies the Heltec V4's GC1109 front-end curve and receive gain from `SIM_MESH_BOARD` (`sim-mesh/radio/src/model.cpp:168-220`). The firmware sets chip power, and the ether sees power at the antenna.
 
 ## Work: hooks in attermann's firmware (upstreamable)
 
@@ -82,16 +82,16 @@ In `competition/attermann_microReticulum_Firmware`, one commit each. None of the
    - `kiss_tcp_port = 0` skips `native_kiss_tcp::init`;
    - an optional `kiss_tcp_bind = <address>` key sets the bind address, taking precedence over `kiss_tcp_public`.
 
-   `[env:simesh]` leaves out `-DENABLE_WEBSOCKETS`, so the WebSocket console needs no key.
+   `[env:sim-mesh]` leaves out `-DENABLE_WEBSOCKETS`, so the WebSocket console needs no key.
 5. **Reboot by exit.** A `reboot_mode = exit` key in `rnoded.conf`. When it is set, `native_reboot` exits with status 0 after its cleanup instead of re-execing. This is for supervisor-managed deployments; systemd `Restart=always` needs the same.
 6. **The LoRa interface mode as a config key.** A `lora_interface_mode` key in `rnoded.conf` (gateway, full, point_to_point, access_point, roaming, boundary; default gateway), parsed in `native/config.cpp` and used at `RNode_Firmware.ino:1021` in place of the constant `MODE_GATEWAY`. It is only the default that provisioning starts from: a persisted `PROV_GENERAL_LORA_MODE` value still wins, as now.
 
 ## Work: the backend library (outside attermann's tree)
 
-A PlatformIO library at `SIMesh/radio/portduino/` (`library.json`, one `.cpp`), next to `radio/backend/esp-idf/`. It serves any Portduino firmware; Meshtastic's `meshtasticd` is Portduino too. It links `SIMesh/radio/build/libsimradio.a` with its include directory `SIMesh/radio/include`; `simesh build radio` builds the library. It supplies:
+A PlatformIO library at `sim-mesh/radio/portduino/` (`library.json`, one `.cpp`), next to `radio/backend/esp-idf/`. It serves any Portduino firmware; Meshtastic's `meshtasticd` is Portduino too. It links `sim-mesh/radio/build/libsimradio.a` with its include directory `sim-mesh/radio/include`; `sim-mesh build radio` builds the library. It supplies:
 
 - **`native_radio_backend_init()`:**
-  - Read `SIMESH_NODE_ID`, `SIMESH_BIND_ADDR` and `SIMESH_ETHER`, then call `simradio_station_open`.
+  - Read `SIM_MESH_NODE_ID`, `SIM_MESH_BIND_ADDR` and `SIM_MESH_ETHER`, then call `simradio_station_open`.
   - Open slot 0 with `simradio_open`, with an `on_pin` callback that stores the DIO1 level and signals a condition variable on DIO1's rising edge.
   - Install a `SPIChip` into `SPI`, through a derived-class accessor, before the driver's `SPI.begin()`. Its `transfer(out, in, len, …)` calls `simradio_transfer`; it copies through a scratch buffer when `in == out`, since the driver transfers in place.
   - `gpioBind` pins at `pin_cs`, `pin_reset`, `pin_busy` and `pin_dio`, taken from the `native_config` it has just loaded:
@@ -100,9 +100,9 @@ A PlatformIO library at `SIMesh/radio/portduino/` (`library.json`, one `.cpp`), 
     - NSS does nothing, since each frame is already one `transfer`.
 - **`rnode_idle(max_ms)`:** wait on the condition variable with `pthread_cond_timedwait` until `max_ms` has passed or DIO1 has risen. The shim answers that wait in node time. A DIO1 edge wakes the wait at once, and the next `gpioIdle()` fires the ISR. `max_ms == 0` returns at once.
 
-The library carries no firmware-specific code beyond the two hook names. A small `SIMesh/radio/portduino/README.md` says what it is and which hooks a firmware must call.
+The library carries no firmware-specific code beyond the two hook names. A small `sim-mesh/radio/portduino/README.md` says what it is and which hooks a firmware must call.
 
-## Work: `[env:simesh]` (the one block that stays local)
+## Work: `[env:sim-mesh]` (the one block that stays local)
 
 In `competition/attermann_microReticulum_Firmware/platformio.ini`. Base it on `[env:native]` with these changes:
 
@@ -110,7 +110,7 @@ In `competition/attermann_microReticulum_Firmware/platformio.ini`. Base it on `[
 - Keep `-DLORA_TRANSPORT`, `-DMCU_VARIANT=MCU_NATIVE`, `-DMODEM=MODEM_RUNTIME`, `-DDISABLE_FIRMWARE_CHECKSUM`, `-DUSTORE_USE_POSIXFS=1` and the path-table sizes.
 - Leave out `-DENABLE_WEBSOCKETS`.
 - Timing flags: `-DSTATUS_INTERVAL_MS=50`, `-DDCD_SAMPLES=150` (the utilisation window stays 7.5 s) and `-DRNODE_IDLE_MAX_MS=50`.
-- `lib_extra_dirs` or a `symlink://` `lib_deps` entry pointing at `SIMesh/radio/portduino`.
+- `lib_extra_dirs` or a `symlink://` `lib_deps` entry pointing at `sim-mesh/radio/portduino`.
 
 **What 50 ms gives.** An idle station wakes 20 times per second of T. A transmission adds one wake each for the end of DIFS, the end of the contention window and the end of the airtime. Receive costs no latency, because DIO1 wakes the wait.
 
@@ -141,7 +141,7 @@ kiss_tcp_port  = 0
 reboot_mode    = exit
 ```
 
-`lora_txp` is chip power. For a Heltec V4, the model maps it through the GC1109 curve to antenna power. The firmware logs to stdout and stderr, which is the station console, and SIMesh appends it to the station's `log`. The console carries no framed RPC (remote procedure call), and stdin is unused.
+`lora_txp` is chip power. For a Heltec V4, the model maps it through the GC1109 curve to antenna power. The firmware logs to stdout and stderr, which is the station console, and sim-mesh appends it to the station's `log`. The console carries no framed RPC (remote procedure call), and stdin is unused.
 
 ## Work: the jrl290 stand-in
 
@@ -151,15 +151,15 @@ RTNode-HeltecV4 has no native target. Its `.ino` is ESP32-only, and its vendored
    - `Interface.cpp`: add `MODE_FULL` and `MODE_BOUNDARY` to `DISCOVER_PATHS_FOR`, alongside access point, gateway and roaming (jrl290 `Interface.cpp:12`).
    - `Transport::path_request`: set `should_search_for_unknown` whenever `attached_interface` is set, whatever the interface's mode (jrl290 `Transport.cpp:3543-3546`).
    - The discovery forwarding loop: skip an interface only when it is the attached interface **and** `is_backbone()` (jrl290 `Transport.cpp:3693-3697`). If attermann's `Interface` has no `is_backbone()`, a LoRa-only station needs none: forward on every interface.
-2. `[env:simesh-jrl290]` extends `[env:simesh]` and points `lib_deps` at the local branch (`microReticulum=symlink://../attermann_microReticulum`, checked out on `jrl290-rules`).
+2. `[env:sim-mesh-jrl290]` extends `[env:sim-mesh]` and points `lib_deps` at the local branch (`microReticulum=symlink://../attermann_microReticulum`, checked out on `jrl290-rules`).
 3. **LoRa in full mode**, as jrl290's `.ino:1027` sets it, through hook 6: the kind writes `lora_interface_mode = full` for these stations. The device file for the stand-in says so, so any node running it gets full mode without a nodeset having to declare it.
 
 The stand-in does not include jrl290's other changes: ratcheted announce validation, HDLC and KISS dual framing, Ed25519 hardening, the TCP echo fix and the firewall. For LoRa-only path-request behaviour, those do not matter.
 
-## Work: SIMesh
+## Work: sim-mesh
 
-1. **A new file, `SIMesh/testbed/kinds/microreticulum.py`**: a `Kind` with `type_name = "microreticulum"`, modelled on `kinds/sergeyculum.py`. The station has no console to type at, so the kind's lines are edits to `rnoded.conf`, and a restart applies them. SIMesh runs setup after `wait_up`, as lines through `run()`, and each batch ends with `flush()` (`kinds/__init__.py:156-175`). That fits a config-file firmware as it is.
-   - **`env`**: set `SIMESH_IDLE=threads` in virtual time, `MR_CONFIG=<station dir>/rnoded.conf` and `MR_DATA_DIR=<station dir>/state`. When `rnoded.conf` is missing, write its fixed part: `data_dir`, `modem`, the four pins, `kiss_tcp_port = 0`, `reboot_mode = exit`. When the device's `env:` carries `MR_LORA_INTERFACE_MODE` (the jrl290 stand-in's does), add `lora_interface_mode` with that value.
+1. **A new file, `sim-mesh/testbed/kinds/microreticulum.py`**: a `Kind` with `type_name = "microreticulum"`, modelled on `kinds/sergeyculum.py`. The station has no console to type at, so the kind's lines are edits to `rnoded.conf`, and a restart applies them. sim-mesh runs setup after `wait_up`, as lines through `run()`, and each batch ends with `flush()` (`kinds/__init__.py:156-175`). That fits a config-file firmware as it is.
+   - **`env`**: set `SIM_MESH_IDLE=threads` in virtual time, `MR_CONFIG=<station dir>/rnoded.conf` and `MR_DATA_DIR=<station dir>/state`. When `rnoded.conf` is missing, write its fixed part: `data_dir`, `modem`, the four pins, `kiss_tcp_port = 0`, `reboot_mode = exit`. When the device's `env:` carries `MR_LORA_INTERFACE_MODE` (the jrl290 stand-in's does), add `lora_interface_mode` with that value.
    - **Its lines**:
      - `set <key> <value>` sets one `rnoded.conf` key;
      - `unset <key>` removes one.
@@ -179,10 +179,10 @@ The stand-in does not include jrl290's other changes: ratcheted announce validat
    - **`configured`**: `rnoded.conf` exists and `state/` is not empty.
 
    The first boot of a new station runs on the firmware's default radio figures, before setup's lines arrive. It is thrown away by the restart after the first batch. It may put an announce on air on the default channel, which no other node shares.
-2. **The backend library, `SIMesh/radio/portduino/`**, above. It is additive; nothing in SIMesh builds it.
-3. **`SIMesh/testbed/kinds/__init__.py:236-237`**: add the class to the registry tuple. Do this **last**, after the class passes its tests, because the registry imports every kind whenever any kind is resolved, so a broken module takes every simulation down.
-4. **`SIMesh/testbed/simesh/reticulum/__init__.py:13`**: `KIND_TYPES = ("reticulous", "microreticulum")`, so that `seq.py`, `delivery.py`, `airtime.py` and the other analysis tools decode its frames as Reticulum.
-5. **`SIMesh/devices/local/microreticulum_local.yaml` and `microreticulum-jrl290_local.yaml`**: compiled builds run in place:
+2. **The backend library, `sim-mesh/radio/portduino/`**, above. It is additive; nothing in sim-mesh builds it.
+3. **`sim-mesh/testbed/kinds/__init__.py:236-237`**: add the class to the registry tuple. Do this **last**, after the class passes its tests, because the registry imports every kind whenever any kind is resolved, so a broken module takes every simulation down.
+4. **`sim-mesh/testbed/sim_mesh/reticulum/__init__.py:13`**: `KIND_TYPES = ("reticulous", "microreticulum")`, so that `seq.py`, `delivery.py`, `airtime.py` and the other analysis tools decode its frames as Reticulum.
+5. **`sim-mesh/devices/local/microreticulum_local.yaml` and `microreticulum-jrl290_local.yaml`**: compiled builds run in place:
    - `kind: microreticulum`
    - `elf:` the respective `.pio/build/<env>/program`
    - `stands_for: ESP32-S3`
@@ -194,12 +194,12 @@ Nothing in the existing parts of `radio/`, the ether, simd, the front or the exi
 
 ## Order, so nothing shared breaks
 
-1. The hooks in the firmware clone, one commit each. The backend library in `SIMesh/radio/portduino/`. Then a host build of `[env:simesh]` (`pio run -e simesh`).
-2. Run the binary by hand against a lone ether (`python3 SIMesh/ether/ether.py …` per `SIMesh/README.md`, "The pieces on their own") with the `SIMESH_*` variables set. Confirm that it opens the link, initialises the SX1262 and transmits an announce, which shows as a frame in the ether's record.
-3. Write the kind and its `devices/local` file. Run it with `simd --build` on a nodeset of two of these nodes and one Reticulous node. Run `cd SIMesh/testbed && python3 -m pytest -q`.
+1. The hooks in the firmware clone, one commit each. The backend library in `sim-mesh/radio/portduino/`. Then a host build of `[env:sim-mesh]` (`pio run -e sim-mesh`).
+2. Run the binary by hand against a lone ether (`python3 sim-mesh/ether/ether.py …` per `sim-mesh/README.md`, "The pieces on their own") with the `SIM_MESH_*` variables set. Confirm that it opens the link, initialises the SX1262 and transmits an announce, which shows as a frame in the ether's record.
+3. Write the kind and its `devices/local` file. Run it with `simd --build` on a nodeset of two of these nodes and one Reticulous node. Run `cd sim-mesh/testbed && python3 -m pytest -q`.
 4. Add the kind to the registry tuple and `KIND_TYPES`, then run the test suite again.
 5. Build the jrl290 stand-in and run the same nodeset with it.
-6. Once both work, add the new kind's rows to the station-kinds and intents tables in `SIMesh/README.md`, its environment to `SIMesh/STATION.md`, and the backend library to the README's "Where the code lives".
+6. Once both work, add the new kind's rows to the station-kinds and intents tables in `sim-mesh/README.md`, its environment to `sim-mesh/STATION.md`, and the backend library to the README's "Where the code lives".
 
 ## Verifying the behaviour under study
 
