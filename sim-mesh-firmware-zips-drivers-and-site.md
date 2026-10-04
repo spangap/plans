@@ -14,14 +14,15 @@ The reticulous zips installed and published (`reticulous-dev-sx1262`,
 `radio`, but no committed script makes them: spangap's node package
 (`spangap-inside`, `_write_node_package`) has none of those four. Needed:
 a script per project that turns its build into a sim-mesh firmware zip —
-reticulous (from a make-builds image), sergeyculum, microreticulum,
-standard-reticulum.
+reticulous (from a make-builds image), microreticulum, standard-reticulum.
+Sergeyculum has one: `fw/sim-mesh/make_zip.py` in its own repository
+(git.emcomm.cc/berlinmesh/reticulum).
 
 ## Drivers, with their source
 
 The reticulous driver exists only inside the installed zips; its source is
-in no repository. microreticulum, sergeyculum and standard-reticulum have
-no driver.
+in no repository. Sergeyculum's is `fw/sim-mesh/driver.py` in its own
+repository. microreticulum and standard-reticulum have no driver.
 
 ## Where they live
 
