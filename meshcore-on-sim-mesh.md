@@ -252,7 +252,7 @@ Every firmware's verbs (`name`, `radio`, `radio_up`, `tx_power`, `diagnostics`, 
   - its `driver.py`;
   - the executable, which the driver starts with `--fsdir state`.
   - The companion zip also carries the host and `pylib/`.
-- **Publishing:** `tools/deploy-firmware` puts the zips on the pre-built list. It needs `gh`, so the user runs it on the host.
+- **Publishing:** `sim firmware publish ZIP…` puts the zips on the pre-built list, run on the host, where `sim` takes the token of the `gh` logged in there.
 
 ## Building it: instructions for the implementer
 
