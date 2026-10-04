@@ -1,6 +1,9 @@
 # sim-mesh: geodata sources as files
 
-Status: agreed 2026-10-04; step 1 of the Order built.
+Status: agreed 2026-10-04. Built: steps 1 and 3 of the Order, step 2 for
+GeoTIFF terrain and surface, CityJSON and population grids, step 4 for
+regional sources (AHN), and the `index` finding method that the Dutch
+sources needed.
 
 A **source** is where a pack's ground comes from: GLO-30, WorldCover,
 OpenStreetMap, Berlin's 1 m data and so on. Sources are data: entries in one
@@ -221,8 +224,9 @@ How a found file is fetched into the cache:
   its name. What every source in the starting set uses.
 - `window`: only the rectangle's part of a cloud-optimised file, read by
   range requests through the file's own index: `cog` rasters, `copc` point
-  clouds, `flatgeobuf` and `geoparquet` features. Kept as the window, keyed
-  by the rectangle.
+  clouds, `flatgeobuf` and `geoparquet` features. Kept as a sparse copy of
+  the whole file, a `.ranges` beside it saying what it holds, so windows of
+  later rectangles add to the one copy.
 
 A query service (OGC API, WCS, Overpass) is not a read method: their limits
 and timeouts make a city's build unreliable.
@@ -446,9 +450,14 @@ for each layer, which source the rectangle takes and where.
    starting set in it with its outlines, and the build planning from it:
    the same packs as today, byte for byte.
 2. The compiler taking its inputs as layers with formats, not by name.
+   Built for GeoTIFF terrain and surface in any known projection, CityJSON
+   and CSV or GeoPackage population grids. Left: XYZ and CityGML beyond
+   Berlin's layouts, land cover beyond WorldCover's classes, a worldwide
+   surface outside EPSG:4326.
 3. `testbed/sources.yaml`, sources listed by indexes, and the page's
-   grouped list.
+   grouped list. Built.
 4. `window` reading for `cog`, so GLO-30 and WorldCover fetch only the
-   rectangle.
+   rectangle. Built for regional sources; the worldwide ones still read
+   whole tiles.
 5. `stac`, and readers past the starting set (`copc`, `geoparquet`), as a
    region asks for them.
